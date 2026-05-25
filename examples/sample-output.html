@@ -2,763 +2,2069 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Obao · 周报审阅 Demo</title>
+<script src="https://cdn.jsdelivr.net/npm/markdown-it@13/dist/markdown-it.min.js"></script>
 <style>
   :root {
-    --primary: #7C5CFF;
-    --primary-hover: #6D4EFF;
-    --primary-soft: #E9E3FF;
-    --primary-light: #F3F0FF;
-    --primary-grad: linear-gradient(135deg, #7C5CFF 0%, #9F7CFF 100%);
-    --primary-grad-soft: linear-gradient(135deg, #F3F0FF 0%, #FAF7FF 100%);
-    --primary-grad-bg: linear-gradient(180deg, #F7F4FF 0%, #FFFFFF 60%);
-    --success: #22C55E;
-    --warning: #F59E0B;
-    --error: #EF4444;
-    --text-1: #1F2329;
-    --text-2: #4E5969;
-    --text-3: #86909C;
-    --text-4: #C9CDD4;
-    --bg-page: #F7F8FC;
+    --bg: #FAF7F2;
     --bg-card: #FFFFFF;
-    --bg-hover: #F1F3F9;
-    --border: #E5E7EB;
-    --border-light: #F0F1F5;
+    --text: #1A1A1A;
+    --text-muted: #6B6B6B;
+    --text-subtle: #9B9B9B;
+    --accent: #C07D2E;
+    --accent-dark: #A8691F;
+    --accent-soft: #F4E8D6;
+    --border: #EAE4DA;
+    --risk-high: #B85450;
+    --risk-mid: #C79938;
+    --risk-low: #7A9B6E;
+    --divider: #EFEAE0;
+    --sider-bg: #F2ECE0;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif;
-    background: var(--bg-card);
-    color: var(--text-1);
-    font-size: 14px;
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.75;
+    font-size: 14px; -webkit-font-smoothing: antialiased;
   }
+  .app { display: block; min-height: 100vh; }
 
-  .app {
-    display: grid;
-    grid-template-columns: 1fr;
-    min-height: 100vh;
-    background: var(--bg-card);
+  /* Onboarding 数据 · LLM 已读面板*/
+  .onboarding-panel {
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, #FFFBF5 0%, #FCF7ED 100%);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
   }
-
-  /* ============ 左 Sider ============ */
-  aside.sider {
-    background: var(--bg-card);
-    border-right: 1px solid var(--border-light);
-    padding: 18px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .sider-logo {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-1);
-    padding: 6px 8px 14px;
-  }
-  .new-chat-btn {
-    background: var(--primary-grad);
-    color: #FFF;
-    border: none;
-    padding: 10px 14px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
+  .op-head {
+    display: flex; align-items: center; gap: 8px;
     margin-bottom: 10px;
-    box-shadow: 0 4px 12px rgba(124, 92, 255, 0.18);
+    font-size: 13px; font-weight: 600; color: var(--text);
   }
-  .sider-item {
-    padding: 8px 10px;
-    border-radius: 6px;
-    font-size: 13px;
-    color: var(--text-2);
-    cursor: pointer;
-  }
-  .sider-item:hover { background: var(--bg-hover); }
-  .sider-section { font-size: 11px; color: var(--text-3); margin: 16px 0 6px 10px; letter-spacing: 0.5px; }
-  .sider-recent {
-    padding: 8px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-  .sider-recent.active { background: var(--primary-light); }
-  .sider-recent-title { font-size: 13px; color: var(--text-1); margin-bottom: 3px; }
-  .sider-recent-time { font-size: 11px; color: var(--text-3); margin-bottom: 4px; }
-  .sider-recent-snippet { font-size: 11px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-  /* ============ 中 Chat 区 ============ */
-  main.chat {
-    display: flex;
-    flex-direction: column;
-    background: var(--bg-card);
-    border-right: 1px solid var(--border-light);
-  }
-  .chat-header {
-    padding: 14px 22px;
-    border-bottom: 1px solid var(--border-light);
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text-1);
-    flex-shrink: 0;
-  }
-  .chat-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 22px;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-  }
-  .chat-row { display: flex; gap: 10px; align-items: flex-start; }
-  .chat-row.user { justify-content: flex-end; }
-  .avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    background: var(--primary-grad);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #FFF;
-    font-weight: 700;
-    font-family: Georgia, serif;
-    font-size: 14px;
-    box-shadow: 0 2px 6px rgba(124, 92, 255, 0.2);
-  }
-  .bubble {
-    max-width: 540px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-light);
-    border-radius: 14px;
-    padding: 14px 16px;
-    line-height: 1.75;
-    color: var(--text-1);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-  }
-  .bubble.user {
-    background: var(--primary-grad);
-    color: #FFF;
-    border: none;
-    box-shadow: 0 4px 14px rgba(124, 92, 255, 0.18);
-  }
-
-  /* 飞阅会卡片（Obao 审完输出的卡）*/
-  .review-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-light);
-    border-radius: 14px;
-    padding: 16px 18px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    max-width: 540px;
-  }
-  .review-card:hover {
-    border-color: var(--primary-soft);
-    box-shadow: 0 8px 28px rgba(124, 92, 255, 0.1);
-    transform: translateY(-1px);
-  }
-  .review-card.active {
-    border-color: var(--primary);
-    box-shadow: 0 8px 28px rgba(124, 92, 255, 0.15);
-  }
-  .rc-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-  }
-  .rc-head-left {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .rc-tag {
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 10px;
-    background: var(--primary-light);
-    color: var(--primary);
+  .op-head .op-tag {
+    font-size: 10px; padding: 2px 8px; border-radius: 10px;
+    background: var(--accent-soft); color: var(--accent);
     font-weight: 500;
   }
-  .rc-tag.purple { background: var(--primary); color: #FFF; }
-  .rc-action-chip {
-    font-size: 11px;
-    padding: 3px 10px;
-    border-radius: 10px;
-    background: var(--primary-light);
-    color: var(--primary);
-    border: 1px solid var(--primary-soft);
-  }
-  .rc-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-1);
-    margin-bottom: 8px;
-  }
-  .rc-desc {
-    font-size: 13px;
-    line-height: 1.7;
-    color: var(--text-2);
-    margin-bottom: 14px;
-  }
-  .rc-stats {
-    display: flex;
-    gap: 18px;
-    padding-top: 12px;
-    border-top: 1px dashed var(--border-light);
-  }
-  .rc-stat {
-    display: flex;
-    align-items: baseline;
-    gap: 4px;
-  }
-  .rc-stat-num {
-    font-size: 20px;
-    font-weight: 700;
-    font-family: Georgia, serif;
-  }
-  .rc-stat-num.green { color: var(--success); }
-  .rc-stat-num.yellow { color: var(--warning); }
-  .rc-stat-num.red { color: var(--error); }
-  .rc-stat-label {
-    font-size: 13px;
-    color: var(--text-3);
-  }
-
-  /* 附件预览卡 */
-  .file-card {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 14px;
-    background: var(--primary-light);
-    border-radius: 10px;
-    max-width: 540px;
-  }
-  .file-card-icon {
-    width: 36px;
-    height: 36px;
-    background: var(--bg-card);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--primary);
-    font-weight: 700;
-    font-family: Georgia, serif;
-  }
-  .file-card-main { flex: 1; min-width: 0; }
-  .file-card-title { font-size: 13px; font-weight: 500; color: var(--text-1); margin-bottom: 2px; }
-  .file-card-meta { font-size: 11px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-  /* 输入框 */
-  .chat-input-area {
-    padding: 12px 22px 20px;
-    border-top: 1px solid var(--border-light);
-    flex-shrink: 0;
-  }
-  .chat-input {
-    border: 1px solid var(--primary-soft);
-    border-radius: 12px;
-    padding: 12px 14px;
-    background: var(--bg-card);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .chat-input-text {
-    color: var(--text-3);
-    font-size: 13px;
-    min-height: 48px;
-  }
-  .chat-input-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .chat-input-tools {
-    display: flex;
-    gap: 8px;
-    color: var(--text-3);
-  }
-  .send-btn {
-    padding: 6px 14px;
-    background: var(--bg-hover);
-    border: none;
-    border-radius: 8px;
-    color: var(--text-3);
-    font-size: 13px;
-    cursor: pointer;
-  }
-  .send-btn.active { background: var(--primary); color: #FFF; }
-
-  /* ============ 右 Drawer · 诊断详情 ============ */
-  aside.drawer {
-    background: var(--primary-grad-bg);
-    padding: 18px 16px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  .drawer-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+  .op-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
     gap: 12px;
+    font-size: 12px;
   }
-  .drawer-head-info { flex: 1; }
-  .drawer-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--text-1);
-    margin-bottom: 8px;
+  .op-cell { padding: 10px 12px; background: #FFF; border-radius: 6px; border: 1px solid var(--divider); }
+  .op-cell-label { font-size: 10px; color: var(--text-subtle); margin-bottom: 4px; letter-spacing: 0.5px; }
+  .op-cell-body { color: var(--text); line-height: 1.7; }
+  .op-cell-body .chip {
+    display: inline-block; padding: 1px 8px; border-radius: 10px;
+    background: var(--accent-soft); color: var(--accent);
+    font-size: 11px; margin-right: 4px; margin-bottom: 3px;
   }
-  .drawer-close {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    color: var(--text-3);
-    font-size: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .drawer-close:hover { background: var(--bg-hover); color: var(--text-1); }
+  .op-cell-body .chip.alias { background: #EFEAE0; color: var(--text-muted); }
+  .op-cell-body .chip.purple { background: #E9E3FF; color: #6E5BA8; }
+  .op-empty { color: var(--text-subtle); font-style: italic; font-size: 11px; }
 
-  /* Summary 段 */
-  .drawer-summary {
-    background: var(--bg-card);
-    border-radius: 10px;
-    padding: 12px 14px;
-    font-size: 13px;
-    line-height: 1.8;
-    color: var(--text-1);
-    border: 1px solid var(--border-light);
+  /* Sider · 老结构已砍 · 保留 css 以防 fallback */
+  aside {
+    width: 220px; background: var(--sider-bg); padding: 28px 20px;
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
   }
-  .drawer-summary::before {
-    content: '';
-    display: inline-block;
-    width: 14px;
-    height: 14px;
-    background: var(--primary-grad);
-    border-radius: 50%;
-    margin-right: 6px;
-    vertical-align: middle;
-  }
-
-  /* Tab */
-  .drawer-tabs {
-    display: flex;
-    gap: 16px;
-    border-bottom: 1px solid var(--border-light);
-  }
-  .drawer-tab {
-    padding: 10px 0;
-    font-size: 14px;
-    color: var(--text-3);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
-    font-weight: 500;
-  }
-  .drawer-tab.active {
-    color: var(--primary);
-    border-bottom-color: var(--primary);
-    font-weight: 600;
-  }
-
-  /* 3 大数字卡 */
-  .stat-cards {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
-  }
-  .stat-card {
-    background: var(--bg-card);
-    border-radius: 12px;
-    padding: 14px 12px;
-    text-align: center;
-    border: 1px solid var(--border-light);
-    cursor: pointer;
+  .logo { font-size: 24px; font-weight: 600; letter-spacing: 2px; color: var(--accent); margin-bottom: 4px; }
+  .logo-sub { font-size: 11px; color: var(--text-subtle); margin-bottom: 24px; letter-spacing: 1px; }
+  .nav-section { font-size: 11px; color: var(--text-subtle); margin: 16px 0 8px; letter-spacing: 1px; }
+  .toc-item {
+    padding: 8px 12px; border-radius: 6px; cursor: pointer;
+    font-size: 13px; color: var(--text-muted); margin-bottom: 2px;
     transition: all 0.15s;
   }
-  .stat-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-  .stat-card-num {
-    font-size: 28px;
-    font-weight: 700;
-    font-family: Georgia, serif;
-    margin-bottom: 4px;
-    line-height: 1;
+  .toc-item:hover { background: #E8DFCE; color: var(--text); }
+  .toc-item.has-flag { border-left: 3px solid var(--risk-high); padding-left: 9px; }
+  .toc-item.has-warn { border-left: 3px solid var(--risk-mid); padding-left: 9px; }
+  .toc-count { font-size: 10px; color: var(--text-subtle); float: right; }
+  aside footer {
+    margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border);
+    font-size: 11px; color: var(--text-subtle); line-height: 1.7;
   }
-  .stat-card.green .stat-card-num { color: var(--success); }
-  .stat-card.yellow .stat-card-num { color: var(--warning); }
-  .stat-card.red .stat-card-num { color: var(--error); }
-  .stat-card-label { font-size: 13px; color: var(--text-3); }
 
-  /* 过滤 chip */
-  .filter-chips {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
+  /* Main · 全宽居中 */
+  main {
+    padding: 28px 0;
+    display: flex; justify-content: center;
   }
-  .filter-chip {
+  .doc-container { width: 100%; max-width: 1100px; padding: 0 32px; }
+
+  /* Header */
+  .header-bar {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    margin-bottom: 22px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  .header-title h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; letter-spacing: 0.3px; }
+  .header-meta { color: var(--text-subtle); font-size: 12px; }
+  .header-meta .dot { margin: 0 6px; opacity: 0.5; }
+  .header-actions { display: flex; gap: 8px; }
+  .btn {
+    padding: 7px 14px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg-card); cursor: pointer; font-size: 12px;
+    color: var(--text); font-family: inherit; transition: all 0.15s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); color: #FFF; border-color: var(--accent); }
+  .btn.primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); color: #FFF; }
+
+  /* OKR 进度对照大表 */
+  .okr-board {
+    background: linear-gradient(135deg, #FFF 0%, #FCF7ED 100%);
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px 24px; margin-bottom: 24px;
+  }
+  .okr-board-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px dashed var(--divider);
+  }
+  .okr-board-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .okr-board-title .emoji { margin-right: 6px; }
+  .okr-board-sub { font-size: 11px; color: var(--text-subtle); }
+  .okr-table { width: 100%; font-size: 12.5px; border-collapse: collapse; }
+  .okr-table th {
+    text-align: left; padding: 8px 10px; color: var(--text-subtle);
+    font-weight: 500; font-size: 11px; letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--divider);
+  }
+  .okr-table td {
+    padding: 10px; border-bottom: 1px solid var(--divider);
+    vertical-align: top;
+  }
+  .okr-table tr:last-child td { border-bottom: none; }
+  .okr-table .okr-id-cell {
+    font-weight: 700; color: var(--accent); font-size: 11px;
+    background: var(--accent-soft); padding: 2px 8px; border-radius: 6px;
+    display: inline-block; white-space: nowrap;
+  }
+  .okr-table .kr-statement { color: var(--text); }
+  .okr-table .kr-data { font-weight: 600; }
+  .okr-table .kr-data.h { color: var(--risk-high); }
+  .okr-table .kr-data.m { color: var(--risk-mid); }
+  .okr-table .kr-data.l { color: var(--risk-low); }
+  .okr-table .kr-trend { color: var(--text-muted); font-size: 11px; }
+  .verdict { font-size: 11px; padding: 2px 8px; border-radius: 8px; font-weight: 500; white-space: nowrap; }
+  .verdict.h { background: #F5E0DF; color: var(--risk-high); }
+  .verdict.m { background: #F5EDD9; color: var(--risk-mid); }
+  .verdict.l { background: #E3EDE0; color: var(--risk-low); }
+  .okr-anchor { font-size: 10px; color: var(--accent); cursor: pointer; }
+  .okr-anchor:hover { text-decoration: underline; }
+
+  /* View tab 切换 */
+  .view-tabs {
+    display: flex; gap: 4px; margin-bottom: 14px;
+    border-bottom: 1px solid var(--border); padding-bottom: 0;
+  }
+  .view-tab {
+    background: transparent; border: none; cursor: pointer;
+    padding: 8px 16px; font-size: 13px; font-family: inherit;
+    color: var(--text-muted); border-bottom: 2px solid transparent;
+    margin-bottom: -1px; transition: all 0.15s;
+  }
+  .view-tab:hover { color: var(--text); }
+  .view-tab.active {
+    color: var(--accent); border-bottom-color: var(--accent); font-weight: 600;
+  }
+  .view-tab-hint {
+    margin-left: auto; align-self: center;
+    font-size: 11px; color: var(--text-subtle); padding: 0 6px;
+  }
+  .view-content { display: none; }
+  .view-content.active { display: block; animation: fadeIn 0.25s; }
+
+  /* 悬浮原文气泡 */
+  .hover-source {
+    position: relative; cursor: help;
+    display: inline-block;
+    text-decoration: underline dotted var(--text-subtle);
+    text-underline-offset: 2px;
+  }
+  .hover-source:hover {
+    color: var(--accent); text-decoration-color: var(--accent);
+  }
+  .hover-source::after {
+    content: "📄 周报原文 ——\A\A" attr(data-src);
+    position: absolute; bottom: 100%; left: 0;
+    transform: translateY(-8px);
+    background: #2A2520; color: #FFF;
+    padding: 14px 16px; border-radius: 8px;
+    font-size: 12px; line-height: 1.75;
+    width: 380px; max-width: 380px;
+    white-space: pre-wrap;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.15s, transform 0.15s;
+    z-index: 100;
+    font-weight: normal;
+    text-align: left;
+  }
+  .hover-source:hover::after {
+    opacity: 1;
+    transform: translateY(-12px);
+  }
+
+  /* ===== 右侧抽屉 ===== */
+  .drawer-overlay {
+    position: fixed; inset: 0; background: rgba(20,16,10,0.4);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s; z-index: 200;
+  }
+  .drawer-overlay.open { opacity: 1; pointer-events: auto; }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: 560px; max-width: 90vw;
     background: var(--bg-card);
-    border: 1px solid var(--border-light);
-    border-radius: 14px;
-    padding: 4px 12px;
-    font-size: 13px;
-    color: var(--text-2);
-    cursor: pointer;
+    box-shadow: -8px 0 32px rgba(0,0,0,0.15);
+    transform: translateX(100%); transition: transform 0.28s;
+    z-index: 201;
+    display: flex; flex-direction: column;
   }
-  .filter-chip.active {
-    background: var(--primary-light);
-    border-color: var(--primary);
-    color: var(--primary);
-    font-weight: 500;
+  .drawer.open { transform: translateX(0); }
+  .drawer-head {
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #FCF7ED 0%, #FFF 100%);
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: flex-start;
   }
-  .filter-chip-count {
-    font-size: 11px;
-    color: var(--text-3);
-    margin-left: 2px;
+  .drawer-head-info { flex: 1; }
+  .drawer-title { font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .drawer-sub { font-size: 12px; color: var(--text-subtle); }
+  .drawer-sub b { color: var(--text-muted); font-weight: 500; }
+  .drawer-close {
+    background: transparent; border: none; cursor: pointer;
+    width: 28px; height: 28px; border-radius: 6px;
+    font-size: 20px; color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
   }
-  .filter-chip.active .filter-chip-count { color: var(--primary); }
-
-  /* 详情列表 */
-  .detail-list {
-    display: flex;
-    flex-direction: column;
+  .drawer-close:hover { background: var(--sider-bg); color: var(--text); }
+  .drawer-body {
+    flex: 1; overflow-y: auto; padding: 22px 24px;
+  }
+  .dw-section { margin-bottom: 22px; }
+  .dw-section:last-child { margin-bottom: 0; }
+  .dw-section-title {
+    font-size: 11px; color: var(--text-subtle); letter-spacing: 1px;
+    margin-bottom: 10px; font-weight: 600;
+  }
+  .dw-status-bar {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
     gap: 10px;
   }
-  .detail-item {
-    background: var(--bg-card);
-    border-radius: 10px;
-    padding: 12px 14px;
-    border: 1px solid var(--border-light);
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
+  .dw-stat {
+    padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+    background: #FCFAF5;
   }
-  .detail-item-num {
-    width: 22px;
-    height: 22px;
-    background: var(--bg-hover);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    color: var(--text-3);
-    flex-shrink: 0;
-    margin-top: 1px;
+  .dw-stat-label { font-size: 10px; color: var(--text-subtle); margin-bottom: 4px; letter-spacing: 0.5px; }
+  .dw-stat-value { font-size: 17px; font-weight: 700; color: var(--text); }
+  .dw-stat-value.h { color: var(--risk-high); }
+  .dw-stat-value.m { color: var(--risk-mid); }
+  .dw-stat-value.l { color: var(--risk-low); }
+  .dw-trend { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; background: #FFFBF5; }
+  .dw-trend-row { display: grid; grid-template-columns: 80px 1fr 70px; padding: 5px 0; font-size: 13px; align-items: center; gap: 10px; }
+  .dw-trend-row .bar-bg { background: #F0EBE0; height: 8px; border-radius: 4px; position: relative; overflow: hidden; }
+  .dw-trend-row .bar-fill { background: var(--risk-high); height: 100%; border-radius: 4px; }
+  .dw-trend-row .bar-target { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--text-muted); border-right: 1px dashed var(--text-muted); }
+  .dw-trend-row.target { color: var(--text-muted); font-size: 11px; padding-top: 8px; border-top: 1px dashed var(--divider); margin-top: 4px; }
+  .dw-source { background: #2A2520; color: #FFF; padding: 14px 16px; border-radius: 8px; font-size: 12.5px; line-height: 1.85; white-space: pre-wrap; }
+  .dw-source-head { font-size: 10px; color: #C8C0B0; margin-bottom: 8px; letter-spacing: 1px; }
+  .dw-comment { background: linear-gradient(135deg, #FCF7ED 0%, #FFFBF5 100%); border-left: 3px solid var(--accent); padding: 14px 16px; border-radius: 0 8px 8px 0; font-size: 13px; line-height: 1.85; }
+  .dw-comment.h { border-left-color: var(--risk-high); background: linear-gradient(135deg, #FDF2F0 0%, #FFFBFA 100%); }
+  .dw-comment b { color: var(--text); font-weight: 600; }
+  .dw-action { padding: 12px 14px; background: #FFFBF5; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; font-size: 13px; line-height: 1.75; }
+  .dw-action:last-child { margin-bottom: 0; }
+  .dw-action-mention { color: var(--accent); font-weight: 600; }
+  .dw-action-meta { font-size: 11px; color: var(--text-subtle); margin-top: 4px; }
+  .dw-cross-ref { background: #F0EBFF; border-left: 3px solid #6E5BA8; padding: 12px 14px; border-radius: 0 8px 8px 0; font-size: 12px; line-height: 1.75; color: var(--text-muted); }
+  .dw-cross-ref b { color: #6E5BA8; font-weight: 600; }
+
+  /* 评论草稿草稿 */
+  .dw-feishu-comment {
+    background: linear-gradient(135deg, #FCF7ED 0%, #FFFBF5 100%);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 16px 18px;
   }
-  .detail-item-body { flex: 1; min-width: 0; }
-  .detail-item-title {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-1);
-    margin-bottom: 4px;
-    line-height: 1.55;
+  .dw-feishu-comment.h { border-left-color: var(--risk-high); background: linear-gradient(135deg, #FDF2F0 0%, #FFFBFA 100%); }
+  .dw-fc-anchor {
+    font-size: 11px; color: var(--text-subtle);
+    padding-bottom: 10px; margin-bottom: 10px;
+    border-bottom: 1px dashed var(--divider);
+    line-height: 1.7;
   }
-  .detail-item-meta {
-    font-size: 12px;
-    color: var(--text-2);
-    line-height: 1.6;
-    margin-bottom: 8px;
+  .dw-fc-text {
+    font-size: 13.5px; line-height: 1.95; color: var(--text);
+    padding: 4px 0;
   }
-  .detail-item-meta b {
-    color: var(--text-1);
-    font-weight: 500;
-  }
-  .detail-item-meta .verdict {
-    color: var(--error);
-    font-weight: 600;
-  }
-  .detail-item-actions {
-    display: flex;
-    gap: 6px;
-  }
-  .feedback-btn {
-    padding: 3px 12px;
-    border: 1px solid var(--border-light);
+  .dw-fc-text b { color: var(--text); font-weight: 600; }
+  .dw-fc-text[contenteditable="true"] {
+    background: #FFF;
+    border: 1px dashed var(--accent);
+    padding: 10px 12px;
     border-radius: 6px;
-    background: transparent;
-    color: var(--text-2);
-    font-size: 11px;
-    cursor: pointer;
+    outline: none;
   }
-  .feedback-btn:hover { border-color: var(--primary); color: var(--primary); }
-  .detail-item-status {
-    flex-shrink: 0;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    display: flex;
+  .dw-fc-text[contenteditable="true"]:focus {
+    border-style: solid; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(192,125,46,0.12);
+  }
+  .dw-fc-actions {
+    display: flex; gap: 6px; margin-top: 14px;
     align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    color: #FFF;
-    margin-top: 1px;
   }
-  .detail-item-status.green { background: var(--success); }
-  .detail-item-status.yellow { background: var(--warning); }
-  .detail-item-status.red { background: var(--error); }
+  .dw-fc-actions .status-pill {
+    font-size: 11px; padding: 3px 10px; border-radius: 10px;
+    font-weight: 500;
+  }
+  .status-pill.draft { background: #EEEAE0; color: var(--text-muted); }
+  .status-pill.pushed { background: #E3EDE0; color: var(--risk-low); }
+  .status-pill.resolved { background: #F5E0DF; color: var(--risk-high); }
+  .dw-fc-btn {
+    font-size: 12px; padding: 7px 12px; border-radius: 6px;
+    border: 1px solid var(--border); background: #FFF;
+    cursor: pointer; font-family: inherit; color: var(--text);
+    transition: all 0.15s;
+  }
+  .dw-fc-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .dw-fc-btn.primary { background: var(--accent); color: #FFF; border-color: var(--accent); }
+  .dw-fc-btn.primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+  .dw-fc-btn.danger:hover { border-color: var(--risk-high); color: var(--risk-high); }
+  .dw-fc-btn.spacer { margin-left: auto; }
+  .dw-fc-mentions {
+    margin-top: 10px; font-size: 11px; color: var(--text-subtle);
+    padding-top: 8px; border-top: 1px dashed var(--divider);
+  }
+  .dw-fc-mention-tag {
+    display: inline-block; padding: 2px 8px; background: var(--accent-soft);
+    color: var(--accent); border-radius: 10px; font-weight: 500;
+    margin-right: 4px; font-size: 11px;
+  }
+
+  /* OKR 表行点击 cue */
+  .okr-table tbody tr:hover { background: #FCF7ED !important; }
+  .okr-table tr.row-clickable { cursor: pointer; }
+
+  /* 「教 Obao」纠错 Modal */
+  .correct-modal-overlay {
+    position: fixed; inset: 0; background: rgba(20,16,10,0.55);
+    display: none; align-items: center; justify-content: center;
+    z-index: 300;
+  }
+  .correct-modal-overlay.open { display: flex; }
+  .correct-modal {
+    width: 580px; max-width: 92vw; background: var(--bg-card);
+    border-radius: 12px; padding: 24px 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .correct-modal h3 { margin: 0 0 8px; font-size: 17px; font-weight: 600; }
+  .correct-modal .ctx {
+    font-size: 12px; color: var(--text-muted); margin-bottom: 14px;
+    padding: 10px 14px; background: var(--sider-bg); border-radius: 6px;
+    line-height: 1.7;
+  }
+  .correct-modal .ctx b { color: var(--text); }
+  .correct-modal textarea {
+    width: 100%; min-height: 120px;
+    padding: 12px 14px; border: 1px solid var(--border); border-radius: 6px;
+    font-family: inherit; font-size: 13px; line-height: 1.8;
+    resize: vertical; outline: none;
+  }
+  .correct-modal textarea:focus { border-color: var(--accent); }
+  .correct-modal .modal-actions {
+    display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end;
+  }
+  .correct-modal .hint {
+    font-size: 11px; color: var(--text-subtle); margin-top: 12px; line-height: 1.7;
+  }
+  .correct-modal .hint b { color: var(--accent); }
+  .teach-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 12px; margin-left: 6px;
+    background: transparent; border: 1px dashed var(--text-subtle);
+    color: var(--text-subtle); font-size: 11px; cursor: pointer;
+    font-family: inherit; transition: all 0.15s;
+  }
+  .teach-btn:hover {
+    border-color: var(--risk-high); color: var(--risk-high); border-style: solid;
+  }
+
+  /* hover 评论 icon · 显眼 · 绑在表行末尾 */
+  .comment-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent);
+    font-size: 14px; cursor: help;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .comment-icon:hover {
+    background: var(--accent); color: #FFF;
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(192,125,46,0.3);
+  }
+  .comment-icon::after {
+    content: "💬 Obao 写给下属的评论草稿\A（已推 · 锚定到这条事项）\A\A" attr(data-comment);
+    position: absolute;
+    bottom: 100%; right: 0;
+    transform: translateY(-8px);
+    background: #2A2520; color: #FFF;
+    padding: 14px 16px; border-radius: 8px;
+    font-size: 12.5px; line-height: 1.85;
+    width: 440px; max-width: 440px;
+    white-space: pre-wrap;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.15s, transform 0.15s;
+    z-index: 110;
+    text-align: left; font-weight: normal;
+  }
+  .comment-icon:hover::after {
+    opacity: 1;
+    transform: translateY(-12px);
+  }
+  /* 行末锚点列变成评论 icon + 跳转 → 的组合 */
+  .row-action-cell {
+    display: flex; gap: 6px; align-items: center; justify-content: flex-end;
+  }
+
+  /* 文档区 */
+  .doc-block {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 28px 32px; margin-bottom: 24px;
+  }
+  .doc-source-bar {
+    font-size: 11px; color: var(--text-subtle); margin-bottom: 16px;
+    padding-bottom: 10px; border-bottom: 1px dashed var(--divider);
+    display: flex; justify-content: space-between;
+  }
+  .doc-source-bar b { color: var(--text-muted); font-weight: 500; }
+
+  .md-content h1 { font-size: 20px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--divider); }
+  .md-content h2 { font-size: 17px; margin: 24px 0 12px; color: var(--text); font-weight: 600; }
+  .md-content h3 { font-size: 14px; margin: 18px 0 8px; color: var(--text); font-weight: 600; }
+  .md-content h4 { font-size: 13px; margin: 14px 0 6px; color: var(--text-muted); font-weight: 600; }
+  .md-content p { margin-bottom: 8px; color: var(--text); line-height: 1.85; }
+  .md-content strong { color: var(--text); font-weight: 600; }
+  .md-content hr { border: none; border-top: 1px dashed var(--divider); margin: 22px 0; }
+  .md-content ol, .md-content ul { padding-left: 22px; margin-bottom: 10px; }
+  .md-content li { margin-bottom: 4px; line-height: 1.8; color: var(--text); }
+  .md-content em { color: var(--text-subtle); font-style: normal; font-size: 12px; }
+
+  /* Obao inline 评论 (评论草稿形态) */
+  .oubao-comment {
+    margin: 10px 0 18px 24px;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, #FCF7ED 0%, #FFFBF5 100%);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(192,125,46,0.08);
+  }
+  .oubao-comment.high { border-left-color: var(--risk-high); background: linear-gradient(135deg, #FDF2F0 0%, #FFFBFA 100%); }
+  .oubao-comment.high::before { border-right-color: var(--risk-high) !important; }
+  .oubao-comment::before {
+    content: ""; position: absolute; left: -8px; top: 16px;
+    width: 0; height: 0;
+    border-top: 6px solid transparent; border-bottom: 6px solid transparent;
+    border-right: 8px solid var(--accent);
+  }
+  .oubao-comment-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px; font-size: 11px;
+  }
+  .oubao-comment-author { display: flex; align-items: center; gap: 8px; }
+  .oubao-comment-avatar {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); color: #FFF;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+  }
+  .oubao-comment.high .oubao-comment-avatar { background: var(--risk-high); }
+  .oubao-comment-name { font-weight: 600; color: var(--accent); }
+  .oubao-comment.high .oubao-comment-name { color: var(--risk-high); }
+  .oubao-comment-time { color: var(--text-subtle); }
+  .oubao-comment-mention {
+    color: var(--accent); font-weight: 500; cursor: pointer;
+  }
+  .oubao-comment-tag {
+    font-size: 10px; padding: 1px 7px; border-radius: 8px;
+    font-weight: 500;
+  }
+  .oubao-comment-tag.h { background: #F5E0DF; color: var(--risk-high); }
+  .oubao-comment-tag.m { background: #F5EDD9; color: var(--risk-mid); }
+  .oubao-comment-tag.l { background: #E3EDE0; color: var(--risk-low); }
+  .oubao-comment-tag.cross-doc { background: #E5E0EF; color: #6E5BA8; }
+  .oubao-comment-body { font-size: 13px; color: var(--text); line-height: 1.8; }
+  .oubao-comment-body p { margin-bottom: 8px; }
+  .oubao-comment-body p:last-child { margin-bottom: 0; }
+  .oubao-comment-body b { color: var(--text); font-weight: 600; }
+
+  /* 评论内嵌的趋势小表 */
+  .trend-mini {
+    margin: 8px 0; padding: 8px 12px;
+    background: #FFF; border: 1px solid var(--divider); border-radius: 6px;
+  }
+  .trend-row {
+    display: grid; grid-template-columns: 80px 1fr 50px;
+    font-size: 12px; padding: 3px 0;
+  }
+  .trend-row.head { color: var(--text-subtle); font-size: 11px; border-bottom: 1px dashed var(--divider); padding-bottom: 4px; margin-bottom: 4px; }
+  .trend-row .bar-bg {
+    background: #F0EBE0; height: 6px; border-radius: 3px; margin: 6px 0; position: relative;
+  }
+  .trend-row .bar-fill {
+    background: var(--risk-high); height: 100%; border-radius: 3px;
+  }
+  .trend-row .bar-target {
+    position: absolute; top: -2px; bottom: -2px; width: 1px;
+    background: var(--text-muted); border-right: 1px dashed var(--text-muted);
+  }
+  .trend-row.target { color: var(--text-muted); }
+
+  /* 行动建议 */
+  .action-list {
+    margin-top: 10px; padding: 10px 12px;
+    background: #FFFBF5; border-radius: 6px;
+    border: 1px solid var(--divider);
+  }
+  .action-list-title {
+    font-size: 11px; color: var(--text-muted); margin-bottom: 6px; font-weight: 500;
+  }
+  .action-list-title::before { content: "🎯 "; }
+  .action-list ul { padding-left: 18px; margin: 0; }
+  .action-list li { font-size: 12.5px; padding: 3px 0; color: var(--text); }
+  .action-list li b { color: var(--accent); }
+
+  /* 跨文档引用 */
+  .cross-ref {
+    margin-top: 10px; padding: 8px 12px;
+    background: #F0EBFF; border-radius: 6px;
+    border-left: 3px solid #6E5BA8;
+    font-size: 12px; color: var(--text-muted);
+  }
+  .cross-ref-title { color: #6E5BA8; font-weight: 600; margin-bottom: 4px; font-size: 11px; }
+  .cross-ref-title::before { content: "📎 跨文档关联："; }
+
+  /* 周会备稿块 */
+  .meeting-block {
+    background: linear-gradient(135deg, #FFF 0%, #FAF4EA 100%);
+    border: 2px solid var(--accent); border-radius: 12px;
+    padding: 24px 28px; margin-bottom: 24px;
+    position: relative;
+  }
+  .meeting-block-ribbon {
+    position: absolute; top: -10px; left: 24px;
+    background: var(--accent); color: #FFF;
+    padding: 4px 14px; border-radius: 12px;
+    font-size: 11px; font-weight: 600; letter-spacing: 1px;
+  }
+  .meeting-block-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; margin-top: 4px; }
+  .meeting-block-sub { color: var(--text-subtle); font-size: 12px; margin-bottom: 18px; }
+  .meeting-agenda-item {
+    border-left: 3px solid var(--accent-soft);
+    padding: 10px 0 10px 14px; margin-bottom: 12px;
+  }
+  .meeting-agenda-item.must-talk { border-left-color: var(--risk-high); }
+  .meeting-agenda-item.should-talk { border-left-color: var(--risk-mid); }
+  .meeting-agenda-item.praise { border-left-color: var(--risk-low); }
+  .meeting-agenda-item.fyi { border-left-color: var(--text-subtle); }
+  .agenda-head {
+    display: flex; gap: 8px; align-items: baseline; margin-bottom: 4px;
+  }
+  .agenda-level {
+    font-size: 10px; padding: 1px 7px; border-radius: 8px; font-weight: 600;
+  }
+  .agenda-level.must { background: #F5E0DF; color: var(--risk-high); }
+  .agenda-level.should { background: #F5EDD9; color: var(--risk-mid); }
+  .agenda-level.praise { background: #E3EDE0; color: var(--risk-low); }
+  .agenda-level.fyi { background: #EEEAE0; color: var(--text-muted); }
+  .agenda-title { font-size: 14px; font-weight: 500; flex: 1; }
+  .agenda-mention { color: var(--accent); font-weight: 600; }
+  .agenda-script {
+    margin-top: 6px; padding: 10px 14px;
+    background: #FFF; border-radius: 6px;
+    font-size: 13px; color: var(--text);
+    line-height: 1.8; border: 1px dashed var(--border);
+  }
+  .agenda-script::before { content: "💬 "; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn 0.3s; }
+
+  @media (max-width: 1180px) {
+    .okr-table { font-size: 11.5px; }
+  }
 </style>
 </head>
 <body>
 
+<!-- ============ 教 Obao 纠错 Modal ============ -->
+<div class="correct-modal-overlay" id="correct-modal-overlay" onclick="if(event.target.id==='correct-modal-overlay')closeCorrect()">
+  <div class="correct-modal">
+    <h3>✏️ 教 Obao · 这条不对 / 评论不对 / 下一步不对</h3>
+    <div class="ctx" id="correct-ctx"></div>
+    <textarea id="correct-textarea" placeholder="为什么不对？怎么改才对？
+
+例：
+- 这条不应该判「严重偏离」 · 也许是常态 · 应该问背景
+- 评论里不要写「下周一前补」 · 评论 = 立刻做 · 不加 ddl
+- @ 错人了 · 数据治理项目的 owner 是 赵六 不是李四
+- 「可用」是你脑补的 · 周报原文没这个词"></textarea>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeCorrect()">取消</button>
+      <button class="btn primary" onclick="submitCorrect()">沉淀进 Obao 记忆</button>
+    </div>
+    <div class="hint">
+      💾 你的纠正会立刻追加到 <b>~/oubao-prototype/profile/owner_profile.yaml</b> 的 <code>corrections</code> 列表 ·
+      下次跑系统 prompt 会带上这条规则 · Obao 不再犯同样错。
+    </div>
+  </div>
+</div>
+
+<!-- ============ 右侧抽屉 ============ -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div class="drawer-head-info">
+      <div class="drawer-title" id="dw-title"></div>
+      <div class="drawer-sub" id="dw-sub"></div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()">×</button>
+  </div>
+  <div class="drawer-body" id="dw-body"></div>
+</div>
+
 <div class="app">
 
-  <!-- ============ 左 Sider ============ -->
-  
+  <!-- -->
 
-  <!-- ============ 中 Chat ============ -->
-  <main class="chat">
-    <div class="chat-header">Obao · 帮我看看这周周报</div>
+  <!-- MAIN -->
+  <main>
+    <div class="doc-container fade-in">
 
-    <div class="chat-body">
-      <!-- 用户发的飞书文档卡 -->
-      <div class="chat-row user">
-        <div class="file-card" style="background: var(--primary-grad); color: #FFF;">
-          <div class="file-card-icon">F</div>
-          <div class="file-card-main">
-            <div class="file-card-title" style="color: #FFF;">周报520 - 产品运营部</div>
-            <div class="file-card-meta" style="color: rgba(255,255,255,0.8);">周期：2026-05-11 至 2026-05-17 · 5 段</div>
+      <!-- Header -->
+      <div class="header-bar">
+        <div class="header-title">
+          <h1>周报 5/20 审阅 · 产品运营部</h1>
+          <div class="header-meta">
+            <span>2026-W21 周会前（5/24 周一 17:00）</span>
+            <span class="dot">·</span>
+            <span>Obao v0.8.1 · 关联 4 期周报 + 项目纪要 · 评论 7 条</span>
           </div>
+        </div>
+        <div class="header-actions">
+          <button class="btn" onclick="alert('Phase 1：把 Obao 评论批量同步到飞书原周报评论区，下级登录飞书就能看到')">💬 评论同步到飞书</button>
+          <button class="btn primary" onclick="alert('Phase 1：把会议备稿同步到日程或便签，开会时一键打开')">📌 备稿带进周会</button>
         </div>
       </div>
 
-      <!-- Obao · 飞阅会卡片 -->
-      <div class="chat-row">
-        <div class="avatar">O</div>
-        <div class="review-card active">
-          <div class="rc-head">
-            <div class="rc-head-left">
-              <span class="rc-tag">周报</span>
-              <span class="rc-tag purple">Obao · 对齐诊断</span>
-            </div>
-            <span class="rc-action-chip">跟我自己对齐</span>
-          </div>
-          <div class="rc-title">我本周 · 7 件事</div>
-          <div class="rc-desc">
-            我觉得本周核心业务进展稳定呀，内容审核、风险用户、合规整改都在主线上推进，AI 自动化审核速度还是偏慢，会影响进审量的消化…
-          </div>
-          <div class="rc-stats">
-            <div class="rc-stat">
-              <span class="rc-stat-num green">3</span>
-              <span class="rc-stat-label">对了</span>
-            </div>
-            <div class="rc-stat">
-              <span class="rc-stat-num yellow">2</span>
-              <span class="rc-stat-label">慢了</span>
-            </div>
-            <div class="rc-stat">
-              <span class="rc-stat-num red">2</span>
-              <span class="rc-stat-label">偏了</span>
+      <!-- ============ Onboarding 数据 · LLM 已读============ -->
+      <!-- 让用户看清「我填的档案 LLM 真的拿到了」+ 自动识别的人在哪里 -->
+      <div class="onboarding-panel">
+        <div class="op-head">
+          📇 Obao 本次审阅用到的档案数据
+          <span class="op-tag">已读 onboarding · 已拉 4 期历史</span>
+        </div>
+        <div class="op-grid">
+          <div class="op-cell">
+            <div class="op-cell-label">业务主线（你录入 · OKR 视角的分组依据）</div>
+            <div class="op-cell-body">
+              <span class="chip">用户增长</span>
+              <span class="chip">内容生态</span>
+              <span class="chip">数据中台</span>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Obao 后续话 -->
-      <div class="chat-row">
-        <div class="avatar">O</div>
-        <div class="bubble">
-          对，这周整体业务还是按主线推进没啥大波动吧，AI 审核速度慢那块你要关注一下上线后的反馈呀，数据和流程细节补全的话，后续诊断会更准呢，有需要补数据就随时说
-        </div>
-      </div>
-
-      <!-- 用户消息 -->
-      <div class="chat-row user">
-        <div class="bubble user">我让你审查啊，你没审查啊</div>
-      </div>
-
-      <!-- Obao 解释 -->
-      <div class="chat-row">
-        <div class="avatar">O</div>
-        <div class="bubble">
-          对，我已经帮你按 OKR 条线做了诊断，并渲染成卡片啦，主要业务事项都按你 KR 对齐分析过了，你要看明细可以点开卡片，后续想聚焦某块或补数据，直接说就行
-        </div>
-      </div>
-    </div>
-
-    <!-- 输入框 -->
-    <div class="chat-input-area">
-      <div class="chat-input">
-        <div class="chat-input-text">继续追问、贴一段事实、或者让 Obao 看某位下属的动作</div>
-        <div class="chat-input-actions">
-          <div class="chat-input-tools">
-            <span>附件</span><span>@</span><span>语音</span>
+          <div class="op-cell">
+            <div class="op-cell-label">专项分类（你录入 · 跨业务线主题）</div>
+            <div class="op-cell-body">
+              <span class="chip purple">AI 提效专项</span>
+              <span class="chip purple">上级申报</span>
+              <span class="chip purple">上级治理</span>
+              <span class="chip purple">上级舆情·调取</span>
+              <span class="chip purple">安全·客户调研</span>
+            </div>
           </div>
-          <button class="send-btn">发送</button>
+          <div class="op-cell">
+            <div class="op-cell-label">花名字典（你录入 · 用于评论 @ 真名）</div>
+            <div class="op-cell-body" style="font-size:11px;">
+              Cici → <b>Cici（你）</b><br>
+              小蜜蜂 → <b>张三</b> · 小草 → <b>孙七</b><br>
+              小金 → <b>吴九</b> · 温温 → <b>郑十</b>
+            </div>
+          </div>
         </div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--divider);font-size:11px;color:var(--text-subtle);line-height:1.75">
+          💡 <b style="color:var(--text-muted)">人视角 ≠ 仅展示你录入的下属</b>。Obao 从本期周报 + 历史 4 期 + 项目纪要里
+          <b style="color:var(--accent)">自动识别出现的所有人</b>（张三 / 李四 / 王五 / 孙七 / 周八 / 赵六 / 吴九 / 郑十），用花名字典做映射。
+          直接下属只是用来打<b style="color:var(--text-muted)">「我直接下属」</b>标签 · 不做白名单过滤。
+        </div>
+      </div>
+
+      <!-- ============ 业务线主线 + 进度对照 ============ -->
+      <div class="okr-board" id="okr-board">
+        <div class="okr-board-head">
+          <div class="okr-board-title"><span class="emoji">📐</span>本周全量进度 · 3 视角看</div>
+          <div class="okr-board-sub">悬浮数据可看原文片段 · 跟你 O包 周报草稿一样的多视角架构</div>
+        </div>
+
+        <div style="font-size:12px;color:var(--text-subtle);margin-bottom:14px;padding:6px 0">
+          💡 数据格 <b style="color:var(--accent)">悬浮看摘要</b> · <b style="color:var(--accent)">点击</b>右侧抽屉看完整原文+评论草稿+动作 · <span style="color:var(--accent);font-weight:600">✍️ Obao 替你写好 9 条评论草稿</span>
+        </div>
+
+        <!-- ============ 3 视角 Tab ============ -->
+        <div class="view-tabs">
+          <button class="view-tab active" data-view="okr" onclick="switchView('okr')">📐 OKR 视角</button>
+          <button class="view-tab" data-view="special" onclick="switchView('special')">🚨 专项视角</button>
+          <button class="view-tab" data-view="person" onclick="switchView('person')">👥 人视角</button>
+          <span class="view-tab-hint">同一份数据 · 三次投影</span>
+        </div>
+        <div class="view-content active" id="view-okr">
+        <table class="okr-table">
+          <thead>
+            <tr>
+              <th style="width:200px">事项</th>
+              <th style="width:130px">OKR 指标</th>
+              <th style="width:110px">本周</th>
+              <th style="width:100px">趋势</th>
+              <th style="width:80px">判断</th>
+              <th>下一动作</th>
+              <th style="width:50px"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- ===== 业务线 1：用户增长 ===== -->
+            <tr><td colspan="7" style="background:#F2ECE0;padding:10px 12px;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:0.5px">🛡 业务线 · 用户增长</td></tr>
+            <tr class="row-clickable" onclick="openDrawer('review-rate-public')" style="background:#FFF8E8">
+              <td><b>用户增长 AI 化 · 活动转化率</b><div style="font-size:11px;color:var(--risk-mid)">张三 · 对公 vs 视频</div></td>
+              <td>≤ 10%（对公+视频）</td>
+              <td><span class="kr-data m hover-source" data-src="活动转化率（季度）：对公：24.4%，视频：0.7%
+原因：
+1、举报环节中高风险举报中企业大部分是真实企业，可以通过对公
+2、刷单类用户增长开始使用有对公资质的企业进行注册，可以通过对公">拉新渠道 24.4% / 存量渠道 0.7%</span></td>
+              <td class="kr-trend">对公 4 周一直<br>22.7→23.4→24.4</td>
+              <td><span class="verdict m">⚠️ 缺汇总</span></td>
+              <td>分析对公 vs 视频差异原因 + 补总体汇总通过率</td>
+              <td><a class="okr-anchor" onclick="openDrawer('review-rate-public')">→</a> <span class="comment-icon" data-comment="@张三 活动转化率（季度）拉新渠道 24.4% / 存量渠道 0.7% 这条&#10;OKR 是「活动转化率目标 10%」呀，没分对公视频&#10;总体汇总多少？是不是目标 10%&#10;对公为啥比视频高那么多，是数量结构 / 策略 / 用户类型不同？&#10;对公 20%+ 是一直这样的常态吗，过去更低还是一直就这样" onclick="event.stopPropagation()">💬</span></td>
+            </tr>
+            <tr class="row-clickable" onclick="openDrawer('recall-aig')">
+              <td><b>用户增长 AI 化 · 召回率 / AIG</b><div style="font-size:11px;color:var(--text-subtle)">张三</div></td>
+              <td>召回 &gt;98% · AIG ≥85%</td>
+              <td><span class="kr-data m">周报未给</span></td>
+              <td class="kr-trend">—</td>
+              <td><span class="verdict m">⚠️ 数据缺</span></td>
+              <td>补充召回率 + AIG 触发数据</td>
+              <td><a class="okr-anchor" onclick="scrollToAnchor('anchor-review-rate')">→</a> <span class="comment-icon" data-comment="@张三 涉案召回这块 ——&#10;OKR 三个指标周报里只给了活动转化率（且超标）&#10;召回率 + AIG 触发占比 两个数补一下" onclick="event.stopPropagation()">💬</span></td>
+            </tr>
+            <tr class="row-clickable" onclick="openDrawer('risk-skill')">
+              <td><b>用户增长 AI 化 · skill</b><div style="font-size:11px;color:var(--text-subtle)">李四/王五</div></td>
+              <td>误伤↓ / 召回↑ / 准确↑</td>
+              <td><span class="kr-data m hover-source" data-src="自动化用户增长审核（李四/王五）：
+1. 优化风险审核场景判断 skill 覆盖图片引流内容识别，5/15 调整完
+   调整前：误伤率 42.20%，漏放率 8.70%，召回率 91.30%，准确率 77.39%
+   调整后：暂未发现漏放
+2. 优化审核规则 skill 完成图片内容获取（小伟提供 skill）
+3. 利用 cursor 实现全自动化审核">4 指标空</span></td>
+              <td class="kr-trend">vs 5/15 调整前可比</td>
+              <td><span class="verdict m">⚠️ 缺数据</span></td>
+              <td>补充 skill 调整后最新 4 指标数据</td>
+              <td><a class="okr-anchor" onclick="scrollToAnchor('anchor-ai-risk')">→</a> <span class="comment-icon" data-comment="@李四 @康君哲 你写的「15号调整完的的，调整前的数据误伤率42.20%，漏放率8.70%，召回率91.30%，准确率77.39%，调整后暂时没有发现漏放的情况」&#10;调整前 4 个数都给了，调整后只说「暂时没有发现漏放的情况」呀&#10;调整后 4 个数（误伤率/漏放率/召回率/准确率）补一下&#10;跑了多少样本也写下吧" onclick="event.stopPropagation()">💬</span></td>
+            </tr>
+            <tr class="row-clickable" onclick="openDrawer('supervise-complaint')">
+              <td><b>申诉举报闭环</b><div style="font-size:11px;color:var(--text-subtle)">上级投诉</div></td>
+              <td>准入合规率 100%</td>
+              <td><span class="kr-data m hover-source" data-src="上级投诉事件
+累计 7 起（其中 12345 反馈 4 起，信通院反馈 3 起）
+
+⚠️ 周报没拆 已处置/进行中/未启动">7 起未拆</span></td>
+              <td class="kr-trend">—</td>
+              <td><span class="verdict m">⚠️ 闭环率不明</span></td>
+              <td>下周拆「已处置/进行中」</td>
+              <td><a class="okr-anchor" onclick="scrollToAnchor('anchor-supervision')">→</a> <span class="comment-icon" data-comment="@李四 上级投诉「累计7起（其中12345反馈4起，信通院反馈3起）」这条&#10;OKR 要求准入合规率 100% + 100% 提供完整证据链「执照+授权+实人」&#10;补给我：&#10;当前准入合规率多少&#10;7 起每起状态（已处置/进行中/未启动）&#10;每起「执照+授权+实人」证据链齐不齐" onclick="event.stopPropagation()">💬</span></td>
+            </tr>
+
+            <!-- ===== 业务线 2：内容生态 ===== -->
+            <tr><td colspan="7" style="background:#F2ECE0;padding:10px 12px;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:0.5px">📝 业务线 · 内容生态</td></tr>
+            <tr class="row-clickable" onclick="openDrawer('content-ai-longtail')" style="background:#FFF8E8">
+              <td><b>内容生态 AI 化 · 长尾场景</b><div style="font-size:11px;color:var(--risk-mid)">孙七/周八 · 数据歧义</div></td>
+              <td>≥ 80% 场景数（÷ 总场景 ~82）</td>
+              <td><span class="kr-data m hover-source" data-src="自动化内容生态（孙七/周八）：
+AI+ 审核场景已经 43 个（目标 53，已完成 81.13%）
+
+⚠️ 数据歧义：
+· 周报「81.13%」= 43÷53（中间目标完成度）
+· KR 真实进度 = 43÷82（总场景）≈ 52.4%
+· 远未达 ≥80% 红线，还差 ~23 个场景">≈52.4%</span> (43/82)</td>
+              <td class="kr-trend">还差 28 个点</td>
+              <td><span class="verdict m">⚠️ 数据歧义</span></td>
+              <td><b>让孙七划词补充：53 是 KR 目标还是中间目标？82 是总场景数吗？</b></td>
+              <td><a class="okr-anchor" onclick="scrollToAnchor('anchor-ai-content')">→</a> <span class="comment-icon" data-comment="@孙七 @祝自强 「**ai+审核场景已经43个**（目标53，已完成81.13%）」这条&#10;OKR 是「长尾场景用可控成本完成至少80%场景数量的自动化」&#10;53 是 KR 真实目标还是中间目标呀&#10;总场景数（分母）多少&#10;「至少80%场景数量」按什么口径算" onclick="event.stopPropagation()">💬</span></td>
+            </tr>
+            <tr class="row-clickable" onclick="openDrawer('content-ai-qualified')">
+              <td><b>内容生态 AI 化 · 资质类</b><div style="font-size:11px;color:var(--text-subtle)">孙七/周八</div></td>
+              <td>自动化率 &gt; 98%</td>
+              <td><span class="kr-data m">测试中</span></td>
+              <td class="kr-trend">—</td>
+              <td><span class="verdict m">⚠️ 缺数据</span></td>
+              <td>下周研发上线给基线数据</td>
+              <td><a class="okr-anchor" onclick="scrollToAnchor('anchor-ai-content')">→</a> <span class="comment-icon" data-comment="@孙七 @祝自强 「资质类场景ai审核测试可用、调试中，系统功能预计下周开始研发上线」这条&#10;测试覆盖了哪些资质类场景&#10;发现什么问题 / 卡点&#10;距离上线还几步&#10;上线后第一批指标（准确率 / 召回率 / 误伤率）什么时候能给" onclick="event.stopPropagation()">💬</span></td>
+            </tr>
+            <tr class="row-clickable" onclick="openDrawer('qa-report')">
+              <td><b>春招 · 质检结果</b><div style="font-size:11px;color:var(--text-subtle)">吴九/孙七 · 4 月质检</div></td>
+              <td>AI 漏放/误伤 · 人工漏放/误伤</td>
+              <td><span class="kr-data m">4 个数字全无</span></td>
+              <td class="kr-trend">—</td>
+              <td><span class="verdict m">⚠️ 数据缺</span></td>
+              <td><b>让吴九/孙七补 4 个数字</b>：AI 漏放% / AI 误伤% / 人工漏放% / 人工误伤%</td>
+              <td>—<span class="comment-icon" data-comment="@吴九 @孙七 「每月完成质检，并输出质检结果」+「4月质检进行中」这条&#10;OKR 要求「按月输出AI和人工的质检结果...有效评价审核业务健康度（时效和反馈、准确率、业务反馈率）」&#10;月底报告里给我：&#10;AI 准确率 / 业务反馈率&#10;人工 准确率 / 业务反馈率&#10;时效和反馈" onclick="event.stopPropagation()">💬</span></td>
+            </tr>
+
+            <!-- ===== 业务线 3：数据中台 ===== -->
+            <tr><td colspan="7" style="background:#F2ECE0;padding:10px 12px;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:0.5px">⚖️ 业务线 · 数据中台</td></tr>
+            <tr class="row-clickable" onclick="openDrawer('data-export')">
+              <td><b>Q3 增长大盘搭建</b><div style="font-size:11px;color:var(--text-subtle)">赵六 · ddl 5/27</div></td>
+              <td>上级申报 100% 通过</td>
+              <td><span class="kr-data l hover-source" data-src="Q3 增长大盘搭建（赵六 · ddl 5/27）
+0330 提交出境申报
+0407 提交延长申报
+0427 天津完备性核验通过，央办审核中
+0512 央办要求撤回
+0515 完成撤回材料提交
+0520 迭代报告编辑中
+
+📎 跨项目纪要：0521 迭代报告已交，等天津办确认">流程中</span></td>
+              <td class="kr-trend">5/21 迭代报告已交</td>
+              <td><span class="verdict l">✅ 不偏离</span></td>
+              <td>等天津办确认（已跨文档验证）</td>
+              <td><a class="okr-anchor" onclick="scrollToAnchor('anchor-data-export')">→</a> <span class="comment-icon" data-comment="@吴九 @孙七 「每月完成质检，并输出质检结果」+「4月质检进行中」这条&#10;OKR 要求「按月输出AI和人工的质检结果...有效评价审核业务健康度（时效和反馈、准确率、业务反馈率）」&#10;月底报告里给我：&#10;AI 准确率 / 业务反馈率&#10;人工 准确率 / 业务反馈率&#10;时效和反馈" onclick="event.stopPropagation()">💬</span></td>
+            </tr>
+            <tr class="row-clickable" onclick="openDrawer('qinglang')">
+              <td><b>AI Native 重构专项</b><div style="font-size:11px;color:var(--text-subtle)">赵六 · ddl 6/1</div></td>
+              <td>上级申报 100% 通过</td>
+              <td><span class="kr-data m">0520 启动</span></td>
+              <td class="kr-trend">9 天倒计时</td>
+              <td><span class="verdict m">⚠️ 待启动</span></td>
+              <td>5/24 前推进 checklist出来</td>
+              <td><a class="okr-anchor" onclick="scrollToAnchor('anchor-supervision')">→</a> <span class="comment-icon" data-comment="@赵六 「AI Native 重构专项 ddl 6.1」「0520启动」这条&#10;你接 owner 吗&#10;推进 checklist是不是直接复用Q3 落地 checklist v1.1&#10;什么时候能出" onclick="event.stopPropagation()">💬</span></td>
+            </tr>
+            <tr class="row-clickable" onclick="openDrawer('gr')">
+              <td><b>对接方 / 上级数据调取</b><div style="font-size:11px;color:var(--text-subtle)">李四</div></td>
+              <td>治理项目无重大迭代</td>
+              <td><span class="kr-data m hover-source" data-src="数据治理项目（赵六 / 李四）：
+0512 上海对接方数据调取（160+ 手机号注册情况、认证情况、简历查看情况明细），预计 5/21 完成
+0520 上级数据调取 · 待开始
+5/20 人社部流动司虚假招聘舆情完成
+5/20 四川/成都人社局虚假招聘舆情完成">上级待开始</span></td>
+              <td class="kr-trend">上海 5/21 完成 · 上级已积 2 天</td>
+              <td><span class="verdict m">⚠️ 待指派</span></td>
+              <td>今天定 owner + 5/26 ddl</td>
+              <td><a class="okr-anchor" onclick="scrollToAnchor('anchor-gr')">→</a> <span class="comment-icon" data-comment="@赵六 「2. 0520上级数据调取」「待开始」这条&#10;上海对接方那条「预计周四5.21完成」节奏可以&#10;上级：内部数据准备截止时间？谁执行（是不是李四同人接，跟上海对接方一致）" onclick="event.stopPropagation()">💬</span></td>
+            </tr>
+            <tr class="row-clickable" onclick="openDrawer('compliance-skill')">
+              <td><b>合规评估 skill</b><div style="font-size:11px;color:var(--text-subtle)">赵六</div></td>
+              <td>输出可用 skill</td>
+              <td><span class="kr-data l">v1.0 可用</span></td>
+              <td class="kr-trend">—</td>
+              <td><span class="verdict l">✅ 正常</span></td>
+              <td>补 5 个细节：评价标准 / 指标值 / 形式 / 位置 / 用户</td>
+              <td><a class="okr-anchor" onclick="scrollToAnchor('anchor-ai-compliance')">→</a> <span class="comment-icon" data-comment="@赵六 合规评估这条 ——&#10;「checklist v1.1：打标签全量测试（要求标签准确--召回）」召回率实际多少呢&#10;6 个评估场景「要求评估结果准确--准确」的准确率多少&#10;「细节问题优化中」具体是哪些细节呀&#10;Skill 部署在哪&#10;现在谁能用" onclick="event.stopPropagation()">💬</span></td>
+            </tr>
+
+          </tbody>
+        </table>
+        </div><!-- /view-okr -->
+
+        <!-- ============ 专项视角 ============ -->
+        <div class="view-content" id="view-special">
+          <table class="okr-table">
+            <thead>
+              <tr>
+                <th style="width:200px">专项</th>
+                <th style="width:90px">主脑</th>
+                <th style="width:90px">ddl</th>
+                <th>本周进展（hover 看原文 / 点击进抽屉）</th>
+                <th style="width:90px">判断</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- ===== AI 提效专项类（新增 · 跨业务线横向主题） ===== -->
+              <tr><td colspan="5" style="background:#E5E0EF;padding:10px 12px;font-size:13px;font-weight:600;color:#6E5BA8;letter-spacing:0.5px">🟪 AI 提效专项类 · 跨业务线</td></tr>
+              <tr class="row-clickable" onclick="openDrawer('risk-skill')">
+                <td><b>自动化用户增长审核</b><div style="font-size:11px;color:var(--text-subtle)">用户增长 AI 化</div></td>
+                <td>李四<br>王五</td>
+                <td>持续</td>
+                <td>
+                  <span class="hover-source" data-src="调整前 误伤 42.20% / 漏放 8.70% / 召回 91.30% / 准确 77.39% · 调整后 暂未发现漏放">· skill 5/15 调整后 4 指标空</span><br>
+                  <span class="hover-source" data-src="获取图片的内容还是慢，工作日自动处理审核的速度跟不上进审">· 图片获取速度跟不上进审</span><br>
+                  <span class="hover-source" data-src="利用 cursor 实现全自动化审核">· cursor 全自动化探索</span>
+                </td>
+                <td><span class="verdict m">⚠️ 缺数据</span><span class="comment-icon" data-comment="@李四 @康君哲 你写的「15号调整完的的，调整前的数据误伤率42.20%，漏放率8.70%，召回率91.30%，准确率77.39%，调整后暂时没有发现漏放的情况」&#10;调整前 4 个数都给了，调整后只说「暂时没有发现漏放的情况」呀&#10;调整后 4 个数（误伤率/漏放率/召回率/准确率）补一下&#10;跑了多少样本也写下吧" onclick="event.stopPropagation()">💬</span></td>
+              </tr>
+              <tr>
+                <td><b>自动化举报审核</b><div style="font-size:11px;color:var(--text-subtle)">用户增长 AI 化</div></td>
+                <td>李四</td>
+                <td>持续</td>
+                <td>
+                  <span class="hover-source" data-src="完成举报场景判断 skill，还在数据验证中和调试中，验证的数据量少暂时没做统计">· 举报场景 skill 验证中（无统计）</span>
+                </td>
+                <td><span class="verdict m">⚠️ 待验证</span></td>
+              </tr>
+              <tr class="row-clickable" onclick="openDrawer('content-ai-longtail')">
+                <td><b>自动化内容生态</b><div style="font-size:11px;color:var(--text-subtle)">内容生态 AI 化</div></td>
+                <td>孙七<br>周八</td>
+                <td>下周研发</td>
+                <td>
+                  <span class="hover-source" data-src="AI+ 审核场景已经 43 个（目标 53，已完成 81.13%）· 资质类场景 AI 审核测试可用、调试中">· 长尾 43/82 ≈ 52.4%（数据歧义）</span><br>
+                  <span class="hover-source" data-src="资质类场景 AI 审核测试可用、调试中 · 系统功能预计下周开始研发上线">· 资质类调试中 · 下周研发</span>
+                </td>
+                <td><span class="verdict m">⚠️ 数据歧义</span><span class="comment-icon" data-comment="@孙七 @祝自强 「**ai+审核场景已经43个**（目标53，已完成81.13%）」这条&#10;OKR 是「长尾场景用可控成本完成至少80%场景数量的自动化」&#10;53 是 KR 真实目标还是中间目标呀&#10;总场景数（分母）多少&#10;「至少80%场景数量」按什么口径算" onclick="event.stopPropagation()">💬</span></td>
+              </tr>
+              <tr>
+                <td><b>阿里云机器审核 V1.0 升级</b><div style="font-size:11px;color:var(--text-subtle)">内容生态提效</div></td>
+                <td>赵六</td>
+                <td>6 月研发</td>
+                <td>
+                  <span class="hover-source" data-src="图片测试已达标（误伤 2.31% · 漏放 2.14% · 召回 97.86%）· 视频和文本调整测试中 · 本周完成测试">· 图片测试达标 · 视频/文本调整中 · 6 月研发</span>
+                </td>
+                <td><span class="verdict l">✅ 节奏</span></td>
+              </tr>
+              <tr class="row-clickable" onclick="openDrawer('compliance-skill')">
+                <td><b>合规评审 AI / Skill</b><div style="font-size:11px;color:var(--text-subtle)">合规评估提效</div></td>
+                <td>赵六</td>
+                <td>持续</td>
+                <td>
+                  <span class="hover-source" data-src="Q3 落地 checklist v1.1：打标签全量测试中 · 合规评估测试中 · Skill v1.0：识别-打标-评估-输出全链路已实现">· checklist v1.1 测试中 · Skill v1.0 全链路通</span>
+                </td>
+                <td><span class="verdict l">✅ 节奏</span><span class="comment-icon" data-comment="@赵六 合规评估这条 ——&#10;「checklist v1.1：打标签全量测试（要求标签准确--召回）」召回率实际多少呢&#10;6 个评估场景「要求评估结果准确--准确」的准确率多少&#10;「细节问题优化中」具体是哪些细节呀&#10;Skill 部署在哪&#10;现在谁能用" onclick="event.stopPropagation()">💬</span></td>
+              </tr>
+              <tr>
+                <td><b>薪资预测</b><div style="font-size:11px;color:var(--text-subtle)">内容生态提效 · 探索</div></td>
+                <td>赵六<br>AIG / 鄂吉波</td>
+                <td>探索</td>
+                <td>
+                  <span class="hover-source" data-src="AIG 5/8 提供Demo Co和 boss 信息预测，待完成评估">· AIG 5/8 提供预测 · 待评估</span>
+                </td>
+                <td><span class="verdict m">⚠️ 待评估</span></td>
+              </tr>
+
+              <tr><td colspan="5" style="background:#F2ECE0;padding:10px 12px;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:0.5px">🟧 上级申报类</td></tr>
+              <tr class="row-clickable" onclick="openDrawer('data-export')">
+                <td><b>Q3 增长大盘搭建</b><div style="font-size:11px;color:var(--text-subtle)">央办撤回后迭代</div></td>
+                <td>赵六</td>
+                <td><b style="color:var(--risk-mid)">5/27</b></td>
+                <td>
+                  <span class="hover-source" data-src="0512 央办要求撤回 → 0515 完成撤回 → 0520 迭代报告编辑中 → 0521 迭代报告已提交（项目纪要）">· 迭代报告已交，等天津办确认</span>
+                </td>
+                <td><span class="verdict l">✅ 不偏离</span></td>
+              </tr>
+              <tr class="row-clickable" onclick="openDrawer('qinglang')">
+                <td><b>AI Native 重构专项</b><div style="font-size:11px;color:var(--text-subtle)">网信办专项</div></td>
+                <td>赵六</td>
+                <td><b style="color:var(--risk-mid)">6/1</b></td>
+                <td>
+                  <span class="hover-source" data-src="AI Native 重构专项 0520 启动 · ddl 6/1">· 0520 启动 · 推进 checklist待出</span>
+                </td>
+                <td><span class="verdict m">⚠️ 9 天倒计时</span><span class="comment-icon" data-comment="@赵六 「AI Native 重构专项 ddl 6.1」「0520启动」这条&#10;你接 owner 吗&#10;推进 checklist是不是直接复用Q3 落地 checklist v1.1&#10;什么时候能出" onclick="event.stopPropagation()">💬</span></td>
+              </tr>
+
+              <tr><td colspan="5" style="background:#F2ECE0;padding:10px 12px;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:0.5px">🟨 上级治理类</td></tr>
+              <tr>
+                <td><b>2026 清理整顿人力资源市场秩序</b><div style="font-size:11px;color:var(--text-subtle)">人社部年度专项</div></td>
+                <td>李四</td>
+                <td>持续</td>
+                <td>
+                  <span class="hover-source" data-src="2026 清理整顿人力资源市场秩序专项行动（李四）">· 长期推进 · 周报未详细进展</span>
+                </td>
+                <td><span class="verdict m">⚠️ 缺进展</span></td>
+              </tr>
+              <tr>
+                <td><b>虚假信息核查专项</b><div style="font-size:11px;color:var(--text-subtle)">推进产品补资质</div></td>
+                <td>李四</td>
+                <td>持续</td>
+                <td>
+                  <span class="hover-source" data-src="2. 完成虚假信息核查专项，推进产品增加补充资质的手段">· 推进产品增加补充资质手段</span>
+                </td>
+                <td><span class="verdict l">✅ 推进中</span></td>
+              </tr>
+              <tr>
+                <td><b>60 号文治理</b><div style="font-size:11px;color:var(--text-subtle)">阶段 8 启动</div></td>
+                <td>赵六</td>
+                <td>持续</td>
+                <td>
+                  <span class="hover-source" data-src="周报未明确写 60 号文进展，但相关「邮箱认证刷单」「准入合规」属于本治理项目延伸">· 周报本周未直接出现 60 号文动作</span>
+                </td>
+                <td><span class="verdict m">⚠️ 待回填</span></td>
+              </tr>
+
+              <tr><td colspan="5" style="background:#F2ECE0;padding:10px 12px;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:0.5px">🟦 上级舆情 / 调取</td></tr>
+              <tr class="row-clickable" onclick="openDrawer('gr')">
+                <td><b>对接方 / 上级数据调取</b><div style="font-size:11px;color:var(--text-subtle)">160+ 手机号明细</div></td>
+                <td>李四</td>
+                <td>5/21 / 待定</td>
+                <td>
+                  <span class="hover-source" data-src="0512 上海对接方数据调取（160+ 手机号），预计 5/21 完成 / 0520 上级数据调取 · 待开始">· 上海对接方 5/21 完成 · <b style="color:var(--risk-mid)">上级待开始 · 已积 2 天</b></span>
+                </td>
+                <td><span class="verdict m">⚠️ 上级待</span><span class="comment-icon" data-comment="@赵六 「2. 0520上级数据调取」「待开始」这条&#10;上海对接方那条「预计周四5.21完成」节奏可以&#10;上级：内部数据准备截止时间？谁执行（是不是李四同人接，跟上海对接方一致）" onclick="event.stopPropagation()">💬</span></td>
+              </tr>
+              <tr>
+                <td><b>人社部流动司虚假招聘舆情</b><div style="font-size:11px;color:var(--text-subtle)">5/20 完成</div></td>
+                <td>李四</td>
+                <td>5/20</td>
+                <td>
+                  <span class="hover-source" data-src="8. 人社部流动司关于网络虚假招聘舆情调查和处置 · 5月20日完成">· 5/20 完成</span>
+                </td>
+                <td><span class="verdict l">✅ 完成</span></td>
+              </tr>
+              <tr>
+                <td><b>四川 / 成都人社局虚假招聘舆情</b><div style="font-size:11px;color:var(--text-subtle)">5/20 完成</div></td>
+                <td>李四</td>
+                <td>5/20</td>
+                <td>
+                  <span class="hover-source" data-src="9. 四川人社厅和成都人社局关于虚假招聘的舆情处置情况 · 5月20日完成">· 5/20 完成</span>
+                </td>
+                <td><span class="verdict l">✅ 完成</span></td>
+              </tr>
+              <tr>
+                <td><b>杭州虚假招聘治理情况汇报</b><div style="font-size:11px;color:var(--text-subtle)">5/15 完成</div></td>
+                <td>李四</td>
+                <td>5/15</td>
+                <td>
+                  <span class="hover-source" data-src="杭州虚假招聘治理情况汇报">· 5/15 完成汇报</span>
+                </td>
+                <td><span class="verdict l">✅ 完成</span></td>
+              </tr>
+
+              <tr><td colspan="5" style="background:#F2ECE0;padding:10px 12px;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:0.5px">🟩 安全 / 客户调研</td></tr>
+              <tr>
+                <td><b>客户安全调研</b><div style="font-size:11px;color:var(--text-subtle)">费 / 丁正军</div></td>
+                <td>赵六</td>
+                <td>当天</td>
+                <td>
+                  <span class="hover-source" data-src="0511 客户调研-费 · 0514 客户调研-丁正军 · 当天完成支持反馈">· 0511 费 + 0514 丁正军 · 当天完成</span>
+                </td>
+                <td><span class="verdict l">✅ 完成</span></td>
+              </tr>
+              <tr>
+                <td><b>信息泄露事件处理</b><div style="font-size:11px;color:var(--text-subtle)">阿里云告警</div></td>
+                <td>赵六 / teli</td>
+                <td>5/12-5/17</td>
+                <td>
+                  <span class="hover-source" data-src="由技术反馈阿里云告警 · 已关闭阿里云 key 权限 + 联系账号所属人删代码 + 运维全面排查">· key 已关 · 代码已删 · 运维排查中</span>
+                </td>
+                <td><span class="verdict l">✅ 已处置</span></td>
+              </tr>
+              <tr>
+                <td><b>阿里云机器审核 V1.0 升级</b><div style="font-size:11px;color:var(--text-subtle)">6 月研发</div></td>
+                <td>赵六</td>
+                <td>6 月</td>
+                <td>
+                  <span class="hover-source" data-src="图片测试已达标（误伤 2.31% · 漏放 2.14% · 召回 97.86%）· 视频和文本调整测试中">· 图片测试达标 · 视频/文本调整中 · 6 月研发</span>
+                </td>
+                <td><span class="verdict l">✅ 节奏</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div><!-- /view-special -->
+
+        <!-- ============ 人视角 ============ -->
+        <div class="view-content" id="view-person">
+          <table class="okr-table">
+            <thead>
+              <tr>
+                <th style="width:140px">人</th>
+                <th style="width:170px">背的事</th>
+                <th>本周状态（hover 看原文 / 点击进抽屉）</th>
+                <th style="width:90px">健康度</th>
+                <th style="width:200px">球在你这</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="row-clickable" onclick="openDrawer('review-rate-public')" style="background:#FDF2F0">
+                <td><b>张三</b><div style="font-size:11px;color:var(--risk-high)">小蜜蜂 · 跨业务线高负载</div></td>
+                <td>用户增长 AI 化主脑 · 涉案召回</td>
+                <td>
+                  <span class="hover-source" data-src="活动转化率（季度）：对公：24.4%">· <b style="color:var(--risk-high)">对公活动转化率 24.4%</b>（4 周持续超 ≤10%）</span><br>
+                  <span class="hover-source" data-src="召回率 + AIG 触发占比 周报未给本周数">· 召回率 / AIG 周报未给</span>
+                </td>
+                <td><span class="verdict h">🔴 偏离</span></td>
+                <td><b>本周拍板对公策略升级</b><br>下周补召回/AIG 数据<span class="comment-icon" data-comment="@张三 活动转化率（季度）拉新渠道 24.4% / 存量渠道 0.7% 这条&#10;OKR 是「活动转化率目标 10%」呀，没分对公视频&#10;总体汇总多少？是不是目标 10%&#10;对公为啥比视频高那么多，是数量结构 / 策略 / 用户类型不同？&#10;对公 20%+ 是一直这样的常态吗，过去更低还是一直就这样" onclick="event.stopPropagation()">💬</span></td>
+              </tr>
+              <tr class="row-clickable" onclick="openDrawer('risk-skill')">
+                <td><b>李四</b><div style="font-size:11px;color:var(--text-subtle)">风险审核 AI · 对接方 / 上级 · 上级舆情</div></td>
+                <td>用户增长 skill · 对接方数据调取 · 上级投诉</td>
+                <td>
+                  <span class="hover-source" data-src="调整前：误伤 42.20%/漏放 8.70%/召回 91.30%/准确 77.39% · 调整后：暂未发现漏放">· skill 5/15 调整后 <b>4 指标空</b></span><br>
+                  <span class="hover-source" data-src="上海对接方 5/21 完成 · 上级待开始">· 上海对接方 ✅ · <b style="color:var(--risk-mid)">上级 ⚠️ 待</b></span><br>
+                  <span class="hover-source" data-src="上级投诉累计 7 起">· 上级投诉 7 起未拆</span>
+                </td>
+                <td><span class="verdict m">⚠️ 多事项</span></td>
+                <td>今天定上级 owner+ddl<br>本周补 100 条样本<span class="comment-icon" data-comment="@李四 @康君哲 你写的「15号调整完的的，调整前的数据误伤率42.20%，漏放率8.70%，召回率91.30%，准确率77.39%，调整后暂时没有发现漏放的情况」&#10;调整前 4 个数都给了，调整后只说「暂时没有发现漏放的情况」呀&#10;调整后 4 个数（误伤率/漏放率/召回率/准确率）补一下&#10;跑了多少样本也写下吧" onclick="event.stopPropagation()">💬</span></td>
+              </tr>
+              <tr class="row-clickable" onclick="openDrawer('content-ai-longtail')" style="background:#FFF8E8">
+                <td><b>孙七</b><div style="font-size:11px;color:var(--risk-mid)">小草 · 高负载 · 3 KR</div></td>
+                <td>内容生态 AI 化 · 准入 · 质检报告</td>
+                <td>
+                  <span class="hover-source" data-src="AI+ 审核场景 43/53 (81.13%) · KR 真实进度 43/82 ≈ 52.4%">· 长尾 <b>43/82 ≈ 52.4%</b>（数据歧义）</span><br>
+                  <span class="hover-source" data-src="资质类场景 AI 审核测试可用、调试中">· 资质类测试中（无数据）</span><br>
+                  <span class="hover-source" data-src="4 月质检报告进行中">· 4 月质检报告进行中</span>
+                </td>
+                <td><span class="verdict m">⚠️ 数据歧义</span></td>
+                <td>划词补充：53 vs 82 口径<span class="comment-icon" data-comment="@孙七 @祝自强 「**ai+审核场景已经43个**（目标53，已完成81.13%）」这条&#10;OKR 是「长尾场景用可控成本完成至少80%场景数量的自动化」&#10;53 是 KR 真实目标还是中间目标呀&#10;总场景数（分母）多少&#10;「至少80%场景数量」按什么口径算" onclick="event.stopPropagation()">💬</span></td>
+              </tr>
+              <tr>
+                <td><b>周八</b><div style="font-size:11px;color:var(--text-subtle)">新入 · 配合孙七</div></td>
+                <td>内容生态 AI 化（配合）</td>
+                <td>
+                  <span class="hover-source" data-src="跟周八、平台团队完成根因定位 + 下周研发上线">· 根因定位完成 · 下周研发上线</span>
+                </td>
+                <td><span class="verdict l">✅ 正常</span></td>
+                <td>研发上线时给资质类基线数据</td>
+              </tr>
+              <tr class="row-clickable" onclick="openDrawer('data-export')">
+                <td><b>赵六</b><div style="font-size:11px;color:var(--text-subtle)">合规评审 / 增长大盘 / GR 多专项</div></td>
+                <td>增长大盘 · 新版本上线 · 合规评估 skill · 客户安全</td>
+                <td>
+                  <span class="hover-source" data-src="Q3 增长大盘搭建 0520 迭代报告编辑中 · ddl 5/27">· 增长大盘迭代 5/20 在编辑</span><br>
+                  <span class="hover-source" data-src="AI Native 重构专项 0520 启动 · ddl 6/1">· 新版本上线 AI 启动（9 天倒计时）</span><br>
+                  <span class="hover-source" data-src="Q3 落地 checklist v1.1 · Skill v1.0">· 合规评估 skill 链路完整</span>
+                </td>
+                <td><span class="verdict m">⚠️ 倒计时</span></td>
+                <td>5/24 新版本上线推进 checklist<br>5/27 增长大盘迭代交</td>
+              </tr>
+              <tr>
+                <td><b>郑十</b><div style="font-size:11px;color:var(--text-subtle)">温温 · 流程线主力</div></td>
+                <td>合规评估清单 / 内部流程 / 供应商准入</td>
+                <td>
+                  <span class="hover-source" data-src="本周周报里温温的事项缺席">本周周报<b>没他</b> · 跟你团队人员调整有关吗？</span>
+                </td>
+                <td><span class="verdict m">⚠️ 缺席</span></td>
+                <td>问温温本周做了啥<br>周报为啥没写</td>
+              </tr>
+              <tr>
+                <td><b>吴九</b><div style="font-size:11px;color:var(--text-subtle)">小金 · 准入 + 质检</div></td>
+                <td>春招支撑 · AI 质检</td>
+                <td>
+                  <span class="hover-source" data-src="4 月质检进行中 · AI 漏放/误伤 + 人工漏放/误伤 4 个数全无">· 4 月质检中 · <b>4 个关键数全无</b></span>
+                </td>
+                <td><span class="verdict m">⚠️ 缺关键数</span></td>
+                <td>月底报告补 4 个数</td>
+              </tr>
+              <tr>
+                <td><b>王五</b><div style="font-size:11px;color:var(--text-subtle)">配合李四 · 用户增长 AI</div></td>
+                <td>用户增长 skill</td>
+                <td>
+                  <span class="hover-source" data-src="李四/王五负责用户增长 skill 调整">· 配合 5/15 skill 调整（4 指标待补）</span>
+                </td>
+                <td><span class="verdict m">⚠️ 缺数据</span></td>
+                <td>本周补 100 条样本</td>
+              </tr>
+            </tbody>
+          </table>
+        </div><!-- /view-person -->
+      </div><!-- /okr-board -->
+
+
+
+      <div style="text-align:center;color:var(--text-subtle);font-size:11px;padding:20px 0">
+        — Obao v0.8.1 demo · 本地预览 · onboarding 表单 + 3 视角 + 评论按 demo 标杆 + 自动识别周报里所有人 —
       </div>
     </div>
   </main>
-
-  <!-- ============ 右 Drawer · 诊断详情 ============ -->
-  <aside class="drawer">
-    <div class="drawer-head">
-      <div class="drawer-head-info">
-        <div class="drawer-title">我本周 · 7 件事</div>
-        <span class="rc-action-chip">跟我自己对齐</span>
-      </div>
-      <button class="drawer-close">×</button>
-    </div>
-
-    <div class="drawer-summary">
-      我觉得本周核心业务进展稳定呀，内容审核、风险用户、合规整改都在主线上推进，AI 自动化审核速度还是偏慢，会影响进审量的消化。本月自动化场景即将上线，优先关注场景达标表现和实际业务反馈，增长大盘整改报告进度受制于央办要求撤回，后续风险需提前拍板。复核通过率、召回率、合规测试等数据还缺详细分层，补数据会更好诊断。
-    </div>
-
-    <div class="drawer-tabs">
-      <div class="drawer-tab active">诊断</div>
-      <div class="drawer-tab">Summary · 周报</div>
-    </div>
-
-    <div class="stat-cards">
-      <div class="stat-card green">
-        <div class="stat-card-num">3</div>
-        <div class="stat-card-label">对了</div>
-      </div>
-      <div class="stat-card yellow">
-        <div class="stat-card-num">2</div>
-        <div class="stat-card-label">慢了</div>
-      </div>
-      <div class="stat-card red">
-        <div class="stat-card-num">2</div>
-        <div class="stat-card-label">偏了</div>
-      </div>
-    </div>
-
-    <div class="filter-chips">
-      <div class="filter-chip active">全部 <span class="filter-chip-count">7</span></div>
-      <div class="filter-chip">对了 <span class="filter-chip-count">3</span></div>
-      <div class="filter-chip">慢了 <span class="filter-chip-count">2</span></div>
-      <div class="filter-chip">偏了 <span class="filter-chip-count">2</span></div>
-    </div>
-
-    <div class="detail-list">
-
-      <div class="detail-item">
-        <div class="detail-item-num">1</div>
-        <div class="detail-item-body">
-          <div class="detail-item-title">复核通过率（季度）对公：24.4%，视频：0.7%</div>
-          <div class="detail-item-meta">
-            <span class="verdict">方向偏：</span>KR 要求复核通过率不超过 10%，部分场景高于要求，需补分层数据
-          </div>
-          <div class="detail-item-actions">
-            <button class="feedback-btn">准</button>
-            <button class="feedback-btn">不准</button>
-          </div>
-        </div>
-        <div class="detail-item-status red">×</div>
-      </div>
-
-      <div class="detail-item">
-        <div class="detail-item-num">2</div>
-        <div class="detail-item-body">
-          <div class="detail-item-title">自动化审核速度跟不上进审速度</div>
-          <div class="detail-item-meta">
-            <span class="verdict" style="color: var(--warning);">方向偏：</span>自动化场景上线滞后，业务量峰值支撑不足，关注本月上线后成效
-          </div>
-          <div class="detail-item-actions">
-            <button class="feedback-btn">准</button>
-            <button class="feedback-btn">不准</button>
-          </div>
-        </div>
-        <div class="detail-item-status yellow">!</div>
-      </div>
-
-      <div class="detail-item">
-        <div class="detail-item-num">3</div>
-        <div class="detail-item-body">
-          <div class="detail-item-title">监管投诉事件累计 7 起</div>
-          <div class="detail-item-meta">
-            在 KR 范围内，业务常态但需关注异常场景
-          </div>
-          <div class="detail-item-actions">
-            <button class="feedback-btn">准</button>
-            <button class="feedback-btn">不准</button>
-          </div>
-        </div>
-        <div class="detail-item-status green">✓</div>
-      </div>
-
-      <div class="detail-item">
-        <div class="detail-item-num">4</div>
-        <div class="detail-item-body">
-          <div class="detail-item-title">图片指标：误伤 2.31%，漏放 2.14%，召回 97.86%</div>
-          <div class="detail-item-meta">
-            <b>对了 ·</b> 图片审核已达 KR 召回率 &gt; 98% 临近线
-          </div>
-          <div class="detail-item-actions">
-            <button class="feedback-btn">准</button>
-            <button class="feedback-btn">不准</button>
-          </div>
-        </div>
-        <div class="detail-item-status green">✓</div>
-      </div>
-
-      <div class="detail-item">
-        <div class="detail-item-num">5</div>
-        <div class="detail-item-body">
-          <div class="detail-item-title">Q3 增长大盘搭建：天津办撤回 → 整改报告中</div>
-          <div class="detail-item-meta">
-            <span class="verdict" style="color: var(--warning);">方向慢：</span>整改报告进度受制于央办要求 · 需提前拍板风险预案
-          </div>
-          <div class="detail-item-actions">
-            <button class="feedback-btn">准</button>
-            <button class="feedback-btn">不准</button>
-          </div>
-        </div>
-        <div class="detail-item-status yellow">!</div>
-      </div>
-
-      <div class="detail-item">
-        <div class="detail-item-num">6</div>
-        <div class="detail-item-body">
-          <div class="detail-item-title">合规评估 skill v1.0 全链路打通</div>
-          <div class="detail-item-meta">
-            <b>对了 ·</b> 识别 / 打标 / 评估 / 输出 4 环节闭环 · 准确率待补
-          </div>
-          <div class="detail-item-actions">
-            <button class="feedback-btn">准</button>
-            <button class="feedback-btn">不准</button>
-          </div>
-        </div>
-        <div class="detail-item-status green">✓</div>
-      </div>
-
-      <div class="detail-item">
-        <div class="detail-item-num">7</div>
-        <div class="detail-item-body">
-          <div class="detail-item-title">公安数据调取 5/21 完成 / 国安数据调取 0520 待开始</div>
-          <div class="detail-item-meta">
-            <span class="verdict">方向偏：</span>国安任务积压 2 天 · 内部数据准备截止时间未定
-          </div>
-          <div class="detail-item-actions">
-            <button class="feedback-btn">准</button>
-            <button class="feedback-btn">不准</button>
-          </div>
-        </div>
-        <div class="detail-item-status red">×</div>
-      </div>
-
-    </div>
-
-    <div style="text-align: center; padding: 8px 0; font-size: 11px; color: var(--text-3);">
-      — v0.8.4 demo · Cici 2026-05-25 打磨样式用 —
-    </div>
-  </aside>
-
 </div>
+
+<script>
+const md = window.markdownit({ html: true, linkify: true, breaks: false });
+
+// ============ 部门周报 markdown ============
+const reportMd = `## 一、用户增长
+
+### 1.1 长期项目
+
+#### 用户增长审核
+- 刷单类进审量：**9994**，处置量：**1301**
+- 非刷单类进审量：**1357**，处置量：**272**
+- 活动转化率（季度）：对公：**24.4%**，视频：**0.7%**
+- 活动转化率高的原因：
+  1. 举报环节中高风险举报中企业大部分是真实企业，可以通过对公
+  2. 刷单类用户增长开始使用有对公资质的企业进行注册，可以通过对公
+
+#### 举报审核
+- 举报用户进审量 **2111**，属实量 **422**，属实率 **20.0%**
+- 举报职位进审量 **1282**，属实量 **290**，属实率 **22.6%**
+- 举报企业进审量 **96**，属实量 **7**，属实率 **7.3%**
+
+#### 用户申诉
+- 萨满处置量 **279** · 线上申诉 **277**，通过 **29**
+- 申诉率：**15.5%**（上周 21.5%，↓27.9%）
+- 申诉通过率：**10.5%**（上周 9.9%，↑6%）
+
+#### 上级投诉事件
+- **累计 7 起**（12345 反馈 4 起 · 信通院反馈 3 起）
+
+### 1.2 AI 项目
+
+#### 自动化用户增长审核（owner：李四 / 王五）
+1. 优化风险审核场景判断 skill 覆盖图片引流内容识别，5/15 调整完
+   - 调整前：误伤率 **42.20%**，漏放率 **8.70%**，召回率 **91.30%**，准确率 **77.39%**
+   - 调整后：暂未发现漏放
+2. 优化审核规则 skill 完成用户增长审核场景、图片内容获取（小伟提供 skill）
+   - 重点事项：获取图片的内容还是慢，工作日自动处理审核的速度跟不上进审的速度
+3. 利用 cursor 实现全自动化审核
+
+#### 自动化举报审核（owner：李四）
+- 完成举报场景判断 skill，还在数据验证中和调试中，验证数据量少暂时没做统计
+
+---
+
+## 二、内容生态
+
+### 2.1 长期项目
+- 人工审核 / 特殊审核评估 4 个 / 内容合规评估 3 个 / 内容生态质检 4 月进行中
+
+### 2.2 进展中项目
+- 薪资预测 · AIG 5/8 提供，待评估
+- 阿里云升级 · 图片测试已达标（误伤 2.31% / 漏放 2.14% / 召回 97.86%）· 视频和文本调整中 · 6 月进入研发
+
+### 2.3 AI 项目
+
+#### 自动化内容生态（owner：孙七 / 周八）
+- **AI+ 审核场景已经 43 个**（目标 53，已完成 **81.13%**）
+- 资质类场景 AI 审核测试可用、调试中
+- 系统功能预计下周开始研发上线
+
+---
+
+## 三、内部建设
+
+### 3.1 长期项目
+
+- **合规评审**（owner：赵六）：0511-0520 评估 32 项，4 项广告/内容安全已完成
+- **数据治理项目**（owner：赵六）：
+  - 0512 上海对接方数据调取（160+ 手机号），预计 5/21 完成
+  - 0520 上级数据调取 · **待开始**
+- **客户安全调研** · 当天完成
+- **2026 清理整顿人力资源市场秩序专项行动**（owner：李四）
+- **虚假信息核查专项** + **杭州虚假招聘治理情况汇报**
+
+### 3.2 进展中项目
+
+- **Q3 增长大盘搭建**（owner：赵六，ddl 5/27）：
+  - 0330 提交出境申报 → 0407 提交延长申报 → 0427 天津完备性核验通过 → 0512 央办要求撤回 → 0515 完成撤回 → 0520 迭代报告编辑中
+- **AI Native 重构专项**（owner：赵六，ddl 6/1）：0520 启动
+
+### 3.3 AI 项目
+
+#### 合规评审 AI（owner：赵六）
+- Q3 落地 checklist v1.1：打标签全量测试中 · 合规评估测试中
+- Skill v1.0：识别-打标-评估-输出全链路已实现
+
+---
+
+## 五、需决策事项
+
+（空）`;
+
+// ============ inline 评论清单 ============
+// 每条评论锚定到原文具体段落（按 anchor_keyword 匹配）
+const comments = [
+  {
+    anchor: '活动转化率（季度）：对公：',
+    severity: 'high',
+    tags: ['🔴 严重偏离', '4 周持续恶化'],
+    mentions: ['@张三'],
+    anchorId: 'anchor-review-rate',
+    body: `<p><b>张三这条数字 4 周持续恶化 · 必须本周拍板</b></p>
+<p>OKR 要求：活动转化率 ≤ 10%（对公/视频分别看）<br>
+本周拉新渠道 24.4% · <b>超标 2.44 倍</b> · 存量渠道 0.7% 远低于上限不用担心</p>
+<div class="trend-mini">
+  <div class="trend-row head"><div>周期</div><div>对公活动转化率走势</div><div>数值</div></div>
+  <div class="trend-row"><div>4/20 期</div><div><div class="bar-bg"><div class="bar-fill" style="width:90%"></div><div class="bar-target" style="left:41%"></div></div></div><div><b style="color:var(--risk-high)">22.7%</b></div></div>
+  <div class="trend-row"><div>4/27 期</div><div><div class="bar-bg"><div class="bar-fill" style="width:94%"></div><div class="bar-target" style="left:41%"></div></div></div><div><b style="color:var(--risk-high)">23.4%</b></div></div>
+  <div class="trend-row"><div>5/20 期</div><div><div class="bar-bg"><div class="bar-fill" style="width:98%"></div><div class="bar-target" style="left:41%"></div></div></div><div><b style="color:var(--risk-high)">24.4%</b></div></div>
+  <div class="trend-row target"><div>目标</div><div>＜ 这条虚线就是 OKR ≤10% 上限</div><div>≤10%</div></div>
+</div>
+<p>你周报给的原因（① 真实企业通过对公 ② 刷单类用对公注册），<b>都说明策略已经被结构性绕过</b>，不是「暂时现象」。</p>
+<div class="action-list">
+<div class="action-list-title">张三，本周你给一份「对公策略升级方案」</div>
+<ul>
+<li><b>对公通过后加二次风控</b>：增加身份维度交叉验证</li>
+<li><b>识别"高用户增长用真实企业注册"模式</b>：IP / 设备 / 历史关联特征</li>
+<li><b>给一个能下降 5 个百分点的硬目标</b></li>
+<li>时间：<b>5/30 出方案 · 6/15 上线</b> · Q2 末 6/30 之前必须看到下降</li>
+</ul>
+</div>`
+  },
+  {
+    anchor: '累计 7 起',
+    severity: 'mid',
+    tags: ['⚠️ 闭环率不明'],
+    mentions: ['@李四'],
+    body: `<p>上级投诉 7 起这个数字本身不够 · 没拆「已处置 / 进行中 / 未启动」三个状态。</p>
+<p>OKR 要求：上级调查或用户投诉举报 100% 提供完整准入合规证据链。<br>
+你没给闭环率 · 我没法判断有没有滑掉的。</p>
+<div class="action-list">
+<div class="action-list-title">补充以下数据</div>
+<ul>
+<li>12345 反馈 4 起 · 已处置 X / 进行中 Y / 未启动 Z</li>
+<li>信通院反馈 3 起 · 同上拆分</li>
+<li>每起都附准入合规证据链状态</li>
+</ul>
+</div>`
+  },
+  {
+    anchor: '调整后：暂未发现漏放',
+    severity: 'mid',
+    tags: ['⚠️ skill 调整后 4 指标空'],
+    mentions: ['@李四', '@王五'],
+    anchorId: 'anchor-ai-risk',
+    body: `<p><b>"暂未发现漏放"不是数据，是观察</b>。</p>
+<p>调整前 4 个指标都给了（误伤 42.20% · 漏放 8.70% · 召回 91.30% · 准确 77.39%），调整后<b>一个都没回填</b>。月报跟茂叔讲「skill 升级了」就是空话。</p>
+<div class="action-list">
+<div class="action-list-title">本周必须补</div>
+<ul>
+<li><b>跑至少 100 条样本测试</b></li>
+<li>回填 4 个指标 · 调整前/后并列展示</li>
+<li>这个指标差异是「用户增长 skill 升级了」的唯一 evidence</li>
+<li>ddl <b>5/30 前</b></li>
+</ul>
+</div>`
+  },
+  {
+    anchor: '获取图片的内容还是慢',
+    severity: 'mid',
+    tags: ['链路瓶颈'],
+    mentions: ['@李四'],
+    body: `<p>图片获取速度跟不上进审 = 整条链路被这一环卡住，影响 KR1.2 推进。</p>
+<div class="action-list">
+<div class="action-list-title">周会上拍板</div>
+<ul>
+<li>要不要换图片获取方案？（让小伟一起评估）</li>
+<li>或者 → <b>给一个能跟上进审速度的临时降级方案</b>（按优先级队列处理）</li>
+<li>不能让 skill 卡在一个工具瓶颈上</li>
+</ul>
+</div>`
+  },
+  {
+    anchor: 'AI+ 审核场景已经 43 个',
+    severity: 'low',
+    tags: ['✅ 长尾首次达标'],
+    mentions: ['@孙七', '@周八'],
+    anchorId: 'anchor-ai-content',
+    body: `<p>长尾场景 AI 化 <b>81.13% 首次达标</b>（OKR 红线 80%）· 可表扬。</p>
+<div class="action-list">
+<div class="action-list-title">但下周必须确认两件事</div>
+<ul>
+<li><b>53 vs 82 口径</b>：53 是不是全场景目标？还是只算 ai+ 场景？跟 82 总场景数对得上吗？</li>
+<li><b>资质类 >98% 那条还没数</b>：下周研发上线时让周八同步给基线测试数据 · 不然月报对 CTO 还是「测试中」一句话</li>
+</ul>
+</div>`
+  },
+  {
+    anchor: 'Skill v1.0',
+    severity: 'low',
+    tags: ['✅ 节奏正常'],
+    mentions: ['@赵六'],
+    anchorId: 'anchor-ai-compliance',
+    body: `<p>合规评估 skill 链路完整（识别 → 打标 → 评估 → 输出）· KR 主体已交付。</p>
+<div class="action-list">
+<div class="action-list-title">下周补一个数</div>
+<ul>
+<li>checklist v1.1 全量测试的准确率/召回率</li>
+<li>测试完什么时候能正式上线？</li>
+</ul>
+</div>`
+  },
+  {
+    anchor: '0520 上级数据调取',
+    severity: 'mid',
+    tags: ['⚠️ 待指派 · 已积 2 天'],
+    mentions: ['@李四'],
+    anchorId: 'anchor-gr',
+    body: `<p>0520 接到任务，到现在「待开始」<b>2 天没动</b>。上海对接方那个你做得很好（5/21 准时完成），这个别拖。</p>
+<div class="action-list">
+<div class="action-list-title">今天必须</div>
+<ul>
+<li>确认 owner（建议你接，跟上海对接方同一类）</li>
+<li>定 deadline（建议 <b>5/26 前</b>完成内部数据准备）</li>
+<li>否则一直挂着没人推</li>
+</ul>
+</div>`
+  },
+  {
+    anchor: '0512 央办要求撤回',
+    severity: 'low',
+    tags: ['✅ 不偏离', '📎 已跨项目纪要验证'],
+    mentions: ['@赵六'],
+    anchorId: 'anchor-data-export',
+    body: `<p><b>赵六 这件事 ✅ 不偏离上级申报 100% 通过 · 节奏正常</b>· 但周报这句容易让茂叔误读。</p>
+<div class="cross-ref">
+<div class="cross-ref-title">增长大盘项目纪要 WDMrwDjAui</div>
+<p style="margin:0">
+0330 提交 → 0407 延长 → <b>0427 天津完备性核验通过</b> → 0508 央办问题书面答复 → <b>0512 央办要求主动撤回（程序要求）</b> → 0515 撤回说明盖章 → 0520 沟通迭代 → <b>0521 迭代报告已提交，等天津办确认</b></p>
+</div>
+<p>「撤回」≠「拒绝」· 是央办合规程序的一环 · 迭代报告已交 · 上级侧无警示 · <b>「上级申报 100% 通过」不偏离</b>。</p>
+<div class="action-list">
+<div class="action-list-title">赵六 下次写「撤回」加一句</div>
+<ul>
+<li>「按央办程序要求主动撤回 · 迭代报告已交 · 等天津办确认」</li>
+<li>免得茂叔/外部看完误读</li>
+</ul>
+</div>`
+  },
+  {
+    anchor: 'AI Native 重构专项',
+    severity: 'mid',
+    tags: ['⚠️ 倒计时 9 天'],
+    mentions: ['@赵六'],
+    anchorId: 'anchor-supervision',
+    body: `<p>0520 启动，6/1 截止，只剩 9 天 · 但周报没说 owner / 自查范围 / 节奏</p>
+<div class="action-list">
+<div class="action-list-title">本周拍板</div>
+<ul>
+<li>owner 确认（建议 赵六）</li>
+<li><b>复用Q3 落地 checklist v1.1</b>（你们 AI 项目里已经在跑全量测试）做推进 checklist</li>
+<li><b>5/24 前推进 checklist出来</b> · 5/27-5/30 修订 · 5/31 提交 · 留 1 天 buffer</li>
+</ul>
+</div>`
+  }
+];
+
+// ============ 渲染：把 markdown + inline 评论合成 ============
+function renderDocWithComments() {
+  const rendered = md.render(reportMd);
+  const div = document.createElement('div');
+  div.innerHTML = rendered;
+
+  // 给主章节加 id
+  div.querySelectorAll('h2').forEach(h => {
+    const txt = h.textContent;
+    if (txt.includes('一、用户增长')) h.id = 'section-risk';
+    if (txt.includes('二、内容生态')) h.id = 'section-content';
+    if (txt.includes('三、内部建设')) h.id = 'section-internal';
+  });
+
+  comments.forEach(c => {
+    const elements = div.querySelectorAll('p, li, h2, h3, h4');
+    for (let el of elements) {
+      if (el.textContent.includes(c.anchor) && !el.dataset.commented) {
+        el.dataset.commented = '1';
+        const box = document.createElement('div');
+        box.className = `oubao-comment ${c.severity}`;
+        if (c.anchorId) box.id = c.anchorId;
+        box.innerHTML = renderCommentHtml(c);
+        if (el.tagName === 'LI') {
+          el.appendChild(box);
+        } else {
+          el.parentNode.insertBefore(box, el.nextSibling);
+        }
+        break;
+      }
+    }
+  });
+
+  document.getElementById('doc-content').innerHTML = div.innerHTML;
+}
+
+function renderCommentHtml(c) {
+  const sevTag = c.severity === 'high' ? 'h' : c.severity === 'mid' ? 'm' : 'l';
+  const tagsHtml = c.tags.map(t => {
+    const cls = t.includes('🔴') ? 'h' : t.includes('⚠️') ? 'm' : t.includes('✅') ? 'l' : t.includes('跨文档') ? 'cross-doc' : '';
+    return `<span class="oubao-comment-tag ${cls}">${t}</span>`;
+  }).join(' ');
+  const mentionsHtml = c.mentions.map(m => `<span class="oubao-comment-mention">${m}</span>`).join(' ');
+
+  return `
+    <div class="oubao-comment-head">
+      <div class="oubao-comment-author">
+        <div class="oubao-comment-avatar">O</div>
+        <span class="oubao-comment-name">Obao</span>
+        <span class="oubao-comment-time">刚刚 · 给 ${mentionsHtml}</span>
+      </div>
+      <div>${tagsHtml}</div>
+    </div>
+    <div class="oubao-comment-body">${c.body}</div>
+  `;
+}
+
+/* ===== 抽屉数据 ===== */
+const DRAWER_DATA = {
+  'review-rate-public': {
+    title: '用户增长 AI 化 · 活动转化率（对公）',
+    sub: '🛡 用户增长 · 张三（小蜜蜂） · 对公持续高位 · 视频远低于上限',
+    severity: 'm',
+    stats: [
+      { label: '对公（本周）', value: '24.4%', cls: 'h' },
+      { label: '视频（本周）', value: '0.7%', cls: 'l' },
+      { label: 'OKR 上限', value: '≤ 10%', cls: 'm' }
+    ],
+    trend: {
+      target_pct: 41,
+      rows: [
+        { period: '4/20 期', value: '22.7%', pct: 90 },
+        { period: '4/27 期', value: '23.4%', pct: 94 },
+        { period: '5/20 期', value: '24.4%', pct: 98 }
+      ]
+    },
+    source: `周报原文（5/12-5/17）：
+活动转化率（季度）：对公：24.4%，视频：0.7%
+活动转化率高的原因：
+1、举报环节中高风险举报中企业大部分是真实企业，可以通过对公
+2、刷单类用户增长开始使用有对公资质的企业进行注册，可以通过对公`,
+    feishu_comment: {
+      anchor: '活动转化率（季度）：对公：24.4%，视频：0.7%',
+      severity: 'm',
+      mentions: ['张三'],
+      status: 'pushed',
+      comment_id: '7642633384866565338',
+      text: `活动转化率这块补几个数 ——
+
+周报给的是分项：拉新渠道 24.4% / 存量渠道 0.7%。OKR 是「活动转化率 ≤10%」（没分项）。缺一个汇总数。
+
+补充：
+1. 总体汇总通过率 = 多少%？是否 ≤ 10%？
+2. 对公和视频差异这么大的原因（数量结构？策略差异？用户类型？）
+3. 对公 20%+ 是已经持续的常态？过去是更低还是一直就这样？
+
+有这几个数 + 解释 · 我能判断这条 KR 真实情况。`
+    }
+  },
+
+  'review-rate-video': {
+    title: '用户增长 AI 化 · 活动转化率（视频）',
+    sub: '🛡 用户增长 · 张三',
+    severity: 'l',
+    stats: [
+      { label: '本周', value: '0.7%', cls: 'l' },
+      { label: '目标', value: '≤ 10%', cls: 'l' },
+      { label: '裕度', value: '14 倍空间', cls: 'l' }
+    ],
+    source: `周报原文：
+活动转化率（季度）：对公：24.4%，视频：0.7%`,
+    comment: { severity: 'l', html: `<p>视频通道远低于上限 · 没有需要关注的问题。</p>` },
+    actions: [{ what: '不用关心', detail: '保持现有策略', ddl: '—' }]
+  },
+
+  'recall-aig': {
+    title: '用户增长 AI 化 · 召回率 / AIG 触发',
+    sub: '🛡 用户增长 · 张三 · 周报未给',
+    severity: 'm',
+    stats: [
+      { label: '召回率', value: '?', cls: 'm' },
+      { label: 'AIG 触发', value: '?', cls: 'm' },
+      { label: '复核率', value: '24.4% (对公)', cls: 'h' }
+    ],
+    source: `周报原文：
+（关于 OKR 三个指标中的「召回率 >98%」和「AIG 触发比例 ≥85%」· 周报没给本周数）`,
+    comment: { severity: 'm', html: `<p><b>OKR 三个指标里 · 周报只给了活动转化率（且超标）· 召回率 + AIG 触发占比两个空着</b></p>
+<p>不给数 = 没法判断 OKR 是不是真在跑。</p>` },
+    actions: [
+      { mention: '@张三', what: '补充召回率 + AIG 触发比例', detail: '即使是阶段性数字也要给 · 不能两个 KR 指标空白', ddl: '立刻' }
+    ]
+  },
+
+  'risk-skill': {
+    title: '用户增长 AI 化 · skill 调整后指标',
+    sub: '🛡 用户增长 · 李四 / 王五 · 数据缺',
+    severity: 'm',
+    stats: [
+      { label: '调整前', value: '4 全给', cls: 'm' },
+      { label: '调整后', value: '0 给', cls: 'h' },
+      { label: '样本量', value: '?', cls: 'm' }
+    ],
+    source: `周报原文：
+1. 优化风险审核场景判断 skill 覆盖图片引流内容识别，5/15 调整完
+   调整前：误伤率 42.20%，漏放率 8.70%，召回率 91.30%，准确率 77.39%
+   调整后：暂未发现漏放
+2. 优化审核规则 skill 完成图片内容获取（小伟提供 skill）
+   重点事项：获取图片的内容还是慢，工作日自动处理审核的速度跟不上进审的速度
+3. 利用 cursor 实现全自动化审核`,
+    comment: { severity: 'm', html: `<p><b>「暂未发现漏放」不是数据 · 是观察</b></p>
+<p>调整前 4 个指标全给（误伤 42.20% · 漏放 8.70% · 召回 91.30% · 准确 77.39%）· 调整后<b>一个都没回填</b>。</p>
+<p>月报跟茂叔讲「skill 升级了」<b>就是空话</b>——这个指标差异是「升级了」的唯一 evidence。</p>` },
+    actions: [
+      { mention: '@李四 @王五', what: '本周补 100 条样本测试', detail: '跑出调整后 4 个指标真实数据 · 调整前/后并列对比', ddl: '5/30 前' }
+    ]
+  },
+
+  'supervise-complaint': {
+    title: '申诉举报闭环 · 上级投诉',
+    sub: '🛡 用户增长 · 李四 · 闭环率不明',
+    severity: 'm',
+    stats: [
+      { label: '本周', value: '7 起', cls: 'm' },
+      { label: '12345', value: '4 起', cls: 'm' },
+      { label: '信通院', value: '3 起', cls: 'm' }
+    ],
+    source: `周报原文：
+上级投诉事件
+累计 7 起（其中 12345 反馈 4 起，信通院反馈 3 起）
+
+⚠️ 没拆「已处置 / 进行中 / 未启动」`,
+    comment: { severity: 'm', html: `<p>OKR 要求：上级调查或用户投诉举报 <b>100% 提供完整准入合规证据链</b>。</p>
+<p>本周累计 7 起 · 但<b>没拆闭环状态</b>。没拆 = 我没法判断有没有滑掉的。</p>` },
+    actions: [
+      { mention: '@李四', what: '拆 7 起的闭环状态', detail: '每起：已处置 / 进行中 / 未启动 + 准入合规证据链状态', ddl: '立刻' }
+    ]
+  },
+
+  'content-ai-longtail': {
+    title: '内容生态 AI 化 · 长尾场景',
+    sub: '📝 内容生态 · 孙七 / 周八 · 数据歧义',
+    severity: 'm',
+    stats: [
+      { label: '已完成', value: '43', cls: 'l' },
+      { label: '中间目标', value: '53', cls: 'm' },
+      { label: '总场景', value: '~82', cls: 'm' }
+    ],
+    source: `周报原文：
+AI+ 审核场景已经 43 个（目标 53，已完成 81.13%）
+资质类场景 AI 审核测试可用、调试中
+系统功能预计下周开始研发上线`,
+    comment: { severity: 'm', html: `<p><b>⚠️ 数据歧义 · 不能直接判达标</b></p>
+<p>周报「81.13%」= 43÷53 · 是「中间目标完成度」</p>
+<p>但 KR 真实进度 = 43÷82（总场景数）= <b>52.4%</b> · 离 ≥80% 红线还差 28 个点（还要做 ~23 个场景）。</p>
+<p>Obao不脑补 · 让作者澄清。</p>` },
+    actions: [
+      { mention: '@孙七', what: '划词补充 3 个澄清', detail: '① 53 是 KR 真实目标还是中间目标？② 82 是总场景数吗？③ KR 进度应该按 ÷82 算还是 ÷53 算？', ddl: '本周内' }
+    ]
+  },
+
+  'content-ai-qualified': {
+    title: '内容生态 AI 化 · 资质类',
+    sub: '📝 内容生态 · 孙七 / 周八 · 缺数据',
+    severity: 'm',
+    stats: [
+      { label: '本周', value: '调试中', cls: 'm' },
+      { label: '目标', value: '> 98%', cls: 'l' },
+      { label: '上线', value: '下周研发', cls: 'm' }
+    ],
+    source: `周报原文：
+资质类场景 AI 审核测试可用、调试中
+系统功能预计下周开始研发上线`,
+    comment: { severity: 'm', html: `<p>资质类自动化率 >98% 是 KR 硬指标 · 但当前没数。</p>
+<p>下周研发上线 = 必须同步给基线测试数据 · 否则月报对 CTO 还是「测试中」一句话糊弄。</p>` },
+    actions: [
+      { mention: '@周八', what: '研发上线时同步给基线测试数据', detail: '资质类场景准确率 / 召回率 / 误伤率 · 至少 3 个数', ddl: '研发上线当周' }
+    ]
+  },
+
+  'qa-report': {
+    title: '春招 · 质检结果',
+    sub: '📝 内容生态 · 吴九 / 孙七 · 4 个关键数全缺',
+    severity: 'm',
+    stats: [
+      { label: 'AI 漏放', value: '?', cls: 'm' },
+      { label: 'AI 误伤', value: '?', cls: 'm' },
+      { label: '人工 漏放/误伤', value: '? / ?', cls: 'm' }
+    ],
+    source: `周报原文：
+4 月质检进行中
+
+⚠️ 你真正关心的不是「报告输出」· 是报告里的 4 个数字：
+· AI 漏放率
+· AI 误伤率
+· 人工漏放率
+· 人工误伤率`,
+    comment: { severity: 'm', html: `<p>OKR 文字只写「按月输出质检报告」 · 你真正关心的是<b>报告里的 4 个数字</b>：</p>
+<ol>
+<li>AI 审核漏放率（AI 漏判了多少）</li>
+<li>AI 审核误伤率（AI 误判了多少正常用户）</li>
+<li>人工审核漏放率（人工漏判了多少）</li>
+<li>人工审核误伤率（人工误判了多少）</li>
+</ol>
+<p>有这 4 个数才能判断 AI 替人是不是真的稳。</p>` },
+    actions: [
+      { mention: '@吴九 @孙七', what: '月底 4 月质检报告必须给 4 个数字', detail: 'AI 漏放% · AI 误伤% · 人工漏放% · 人工误伤% · 别再「达标」糊弄', ddl: '5/31 前' }
+    ]
+  },
+
+  'data-export': {
+    title: 'Q3 增长大盘搭建',
+    sub: '⚖️ 数据中台 · 赵六 · ddl 5/27 · 不偏离',
+    severity: 'l',
+    stats: [
+      { label: 'ddl', value: '5/27', cls: 'm' },
+      { label: '当前', value: '迭代报告已交', cls: 'l' },
+      { label: '判断', value: '✅ 不偏离', cls: 'l' }
+    ],
+    source: `周报原文：
+Q3 增长大盘搭建（赵六 · ddl 5/27）
+0330 提交出境申报
+0407 提交延长申报
+0427 天津完备性核验通过，央办审核中
+0512 央办要求撤回
+0515 完成撤回材料提交
+0520 迭代报告编辑中`,
+    cross_ref: `增长大盘项目纪要 WDMrwDjAui · 跨文档关联：
+0427 天津完备性核验已通过
+0508 央办问题书面答复
+0512 央办要求主动撤回（合规程序，非拒绝）
+0515 提供撤回说明盖章版
+0521 迭代报告已提交 · 等天津办确认后上交央办`,
+    comment: { severity: 'l', html: `<p><b>赵六 这件事 ✅ 不偏离 · 节奏正常</b></p>
+<p>「撤回」≠「拒绝」· 是央办合规程序的一环 · 迭代报告已交 · 上级侧无警示 · 「上级申报 100% 通过合规」不偏离。</p>
+<p><b>但</b>周报这句容易让茂叔误读。</p>` },
+    actions: [
+      { mention: '@赵六', what: '下次写「撤回」加一句「按合规程序」', detail: '免得茂叔/外部看完误读', ddl: '下次写周报时' }
+    ]
+  },
+
+  'qinglang': {
+    title: 'AI Native 重构专项',
+    sub: '⚖️ 数据中台 · 赵六 · ddl 6/1 · 9 天倒计时',
+    severity: 'm',
+    stats: [
+      { label: '启动', value: '0520', cls: 'm' },
+      { label: 'ddl', value: '6/1', cls: 'm' },
+      { label: '剩余', value: '9 天', cls: 'm' }
+    ],
+    source: `周报原文：
+AI Native 重构专项（赵六 · ddl 6/1）：0520 启动`,
+    comment: { severity: 'm', html: `<p>9 天倒计时 · 周报没说 owner / 自查范围 / 节奏。</p>
+<p>本周必须拍 owner（建议 赵六）+ 推进 checklist（建议复用Q3 落地 checklist v1.1）。</p>` },
+    actions: [
+      { mention: '@赵六', what: '5/24 前出推进 checklist', detail: '复用Q3 落地 checklist v1.1（你们 AI 项目已经在跑全量测试，可直接复用）· 5/27-5/30 修订 · 5/31 提交 · 留 1 天 buffer', ddl: '5/24' }
+    ]
+  },
+
+  'gr': {
+    title: '对接方 / 上级 数据调取',
+    sub: '⚖️ 数据中台 · 李四 · 上级待开始',
+    severity: 'm',
+    stats: [
+      { label: '上海对接方', value: '5/21 完成', cls: 'l' },
+      { label: '上级', value: '待开始', cls: 'h' },
+      { label: '已积', value: '2 天', cls: 'm' }
+    ],
+    source: `周报原文：
+0512 上海对接方数据调取（160+ 手机号注册情况、认证情况、简历查看情况明细），预计 5/21 完成
+0520 上级数据调取 · 待开始
+5/20 完成人社部流动司虚假招聘舆情 + 四川/成都人社局虚假招聘舆情`,
+    comment: { severity: 'm', html: `<p>上海对接方那个 ✅ 准时完成 · 上级从 0520 接到现在<b>2 天没动</b>。</p>
+<p>不指派 = 一直挂着没人推。</p>` },
+    actions: [
+      { mention: '@李四', what: '今天定 owner + deadline', detail: '建议你接（跟上海对接方同一类）· deadline 5/26 前完成内部数据准备', ddl: '今天' }
+    ]
+  },
+
+  'compliance-skill': {
+    title: '合规评估 skill',
+    sub: '⚖️ 数据中台 · 赵六 · 节奏正常',
+    severity: 'l',
+    stats: [
+      { label: 'Skill', value: 'v1.0 可用', cls: 'l' },
+      { label: 'Checklist', value: 'v1.1 测试中', cls: 'l' },
+      { label: '判断', value: '✅ 正常', cls: 'l' }
+    ],
+    source: `周报原文：
+合规评审 AI（赵六）：
+Q3 落地 checklist v1.1：打标签全量测试中 · 合规评估测试中
+Skill v1.0：已能实现识别输入-打标-评估-输出结果，细节问题优化中`,
+    comment: { severity: 'l', html: `<p>识别 → 打标 → 评估 → 输出 链路完整 · KR 主体已交付。</p>` },
+    actions: [
+      { mention: '@赵六', what: '下周给一个数', detail: 'checklist v1.1 全量测试的准确率 / 召回率 + 计划上线时间', ddl: '下周一' }
+    ]
+  }
+};
+
+/* ===== 视角切换 ===== */
+function switchView(viewName) {
+  document.querySelectorAll('.view-tab').forEach(t => t.classList.toggle('active', t.dataset.view === viewName));
+  document.querySelectorAll('.view-content').forEach(c => c.classList.toggle('active', c.id === 'view-' + viewName));
+}
+
+/* ===== 抽屉打开/关闭 ===== */
+function openDrawer(key) {
+  const d = DRAWER_DATA[key];
+  if (!d) return;
+  document.getElementById('dw-title').textContent = d.title;
+  document.getElementById('dw-sub').innerHTML = d.sub;
+
+  const body = [];
+  // Stats
+  if (d.stats) {
+    body.push(`<div class="dw-section"><div class="dw-status-bar">${
+      d.stats.map(s => `<div class="dw-stat"><div class="dw-stat-label">${s.label}</div><div class="dw-stat-value ${s.cls}">${s.value}</div></div>`).join('')
+    }</div></div>`);
+  }
+  // Trend
+  if (d.trend) {
+    body.push(`<div class="dw-section"><div class="dw-section-title">📈 跨期趋势</div><div class="dw-trend">${
+      d.trend.rows.map(r => `<div class="dw-trend-row"><div>${r.period}</div><div class="bar-bg"><div class="bar-fill" style="width:${r.pct}%"></div><div class="bar-target" style="left:${d.trend.target_pct}%"></div></div><div><b style="color:var(--risk-high)">${r.value}</b></div></div>`).join('')
+    }<div class="dw-trend-row target"><div>OKR 上限</div><div>＜ 虚线 = ≤10% 红线</div><div>10%</div></div></div></div>`);
+  }
+  // Source
+  if (d.source) {
+    body.push(`<div class="dw-section"><div class="dw-section-title">📄 周报原文片段</div><div class="dw-source">${d.source}</div></div>`);
+  }
+  // Cross ref
+  if (d.cross_ref) {
+    body.push(`<div class="dw-section"><div class="dw-section-title">📎 跨文档关联（不能只看周报）</div><div class="dw-cross-ref">${d.cross_ref}</div></div>`);
+  }
+  // 评论草稿草稿（新格式 · 优先）
+  if (d.feishu_comment) {
+    const fc = d.feishu_comment;
+    const status = fc.status || 'draft';
+    const statusLabel = {draft:'📝 草稿', pushed:'✅ 已推飞书', resolved:'🗑 已撤回'}[status];
+    const mentions = (fc.mentions || []).map(m => `<span class="dw-fc-mention-tag">@${m}</span>`).join('');
+    body.push(`<div class="dw-section">
+      <div class="dw-section-title">📝 评论草稿草稿 · 可编辑 · 可推 · 可撤回</div>
+      <div class="dw-feishu-comment ${fc.severity}">
+        <div class="dw-fc-anchor">📍 锚定原周报段落：「${fc.anchor}」</div>
+        <div class="dw-fc-text" id="dw-fc-text-${key}">${fc.text.replace(/\n/g, '<br>')}</div>
+        <div class="dw-fc-mentions">@ 这些人：${mentions} <span style="float:right;color:var(--text-subtle)">改 @ 谁请直接告诉我 / 改其他细节点「编辑」</span></div>
+        <div class="dw-fc-actions">
+          <span class="status-pill ${status}">${statusLabel}${fc.comment_id ? ' · '+fc.comment_id.slice(-6) : ''}</span>
+          <button class="dw-fc-btn" onclick="editFeishuComment('${key}')">✏️ 编辑</button>
+          <button class="dw-fc-btn primary spacer" onclick="pushFeishuComment('${key}')" ${status==='pushed'?'disabled':''}>${status==='pushed'?'已推':'📤 推到飞书'}</button>
+          <button class="dw-fc-btn danger" onclick="recallFeishuComment('${key}')" ${status!=='pushed'?'disabled':''}>🗑 撤回</button>
+          <button class="teach-btn" onclick="openCorrect('${key}')">🎯 教 Obao</button>
+        </div>
+      </div>
+    </div>`);
+  } else {
+    // 旧格式 fallback：comment + actions
+    if (d.comment) {
+      body.push(`<div class="dw-section"><div class="dw-section-title">💬 Obao 判断</div><div class="dw-comment ${d.comment.severity}">${d.comment.html}</div></div>`);
+    }
+    if (d.actions && d.actions.length) {
+      body.push(`<div class="dw-section"><div class="dw-section-title">🎯 替你干活 · 下一动作</div>${
+        d.actions.map(a => `<div class="dw-action">${a.mention ? `<span class="dw-action-mention">${a.mention}</span> ` : ''}<b>${a.what}</b><div style="margin-top:6px;color:var(--text-muted)">${a.detail}</div><div class="dw-action-meta">⏰ ${a.ddl}</div></div>`).join('')
+      }</div>`);
+    }
+  }
+
+  document.getElementById('dw-body').innerHTML = body.join('');
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-overlay').classList.add('open');
+}
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('open');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+function copyFeishuComment(key) {
+  const d = DRAWER_DATA[key];
+  if (!d || !d.feishu_comment) return;
+  const text = d.feishu_comment.text.replace(/<[^>]+>/g, '');
+  navigator.clipboard.writeText(text).then(() => {
+    alert(`✅ 已复制：\n\n${text.slice(0, 80)}...`);
+  });
+}
+
+function editFeishuComment(key) {
+  const el = document.getElementById('dw-fc-text-' + key);
+  if (!el) return;
+  if (el.getAttribute('contenteditable') === 'true') {
+    // 保存编辑
+    const newText = el.innerText;
+    DRAWER_DATA[key].feishu_comment.text = newText;
+    el.setAttribute('contenteditable', 'false');
+    el.innerHTML = newText.replace(/\n/g, '<br>');
+    alert('✏️ 已保存编辑 · 点「📤 推到飞书」推新版');
+  } else {
+    el.setAttribute('contenteditable', 'true');
+    el.innerText = DRAWER_DATA[key].feishu_comment.text;
+    el.focus();
+  }
+}
+
+function pushFeishuComment(key) {
+  const fc = DRAWER_DATA[key].feishu_comment;
+  // 模拟推送 · Phase 1 真实推
+  const fakeId = '76426' + Math.floor(Math.random()*1e9);
+  fc.status = 'pushed';
+  fc.comment_id = fakeId;
+  alert(`📤 [Phase 1 模拟] 已推到飞书周报：\ncomment_id: ${fakeId}\n@: ${(fc.mentions||[]).join(', ')}\n\n下属现在能在评论草稿区看到这条 @ 评论。\n\n注：实际产品需对接 lark-cli drive +add-comment`);
+  // 重新渲染抽屉
+  openDrawer(key);
+}
+
+/* ===== 教 Obao 纠错机制 ===== */
+let _currentCorrectKey = null;
+function openCorrect(key) {
+  _currentCorrectKey = key;
+  const d = DRAWER_DATA[key];
+  const fc = d ? d.feishu_comment : null;
+  const ctx = `事项：<b>${d ? d.title : key}</b><br>
+当前评论（节选）：${fc ? fc.text.slice(0, 80) + '...' : '(无)'}<br>
+@ 谁：${fc && fc.mentions ? fc.mentions.join(', ') : '(无)'}`;
+  document.getElementById('correct-ctx').innerHTML = ctx;
+  document.getElementById('correct-textarea').value = '';
+  document.getElementById('correct-modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('correct-textarea').focus(), 100);
+}
+function closeCorrect() {
+  document.getElementById('correct-modal-overlay').classList.remove('open');
+  _currentCorrectKey = null;
+}
+function submitCorrect() {
+  const text = document.getElementById('correct-textarea').value.trim();
+  if (!text) { alert('告诉我哪里不对呀～'); return; }
+  if (!window._corrections) window._corrections = [];
+  const item = {
+    when: new Date().toISOString().slice(0,16).replace('T',' '),
+    target: _currentCorrectKey,
+    correction: text
+  };
+  window._corrections.push(item);
+  // 写到 localStorage 持久化（demo 模拟 · Phase 1 真写 owner_profile.yaml）
+  try {
+    const stored = JSON.parse(localStorage.getItem('oubao_corrections') || '[]');
+    stored.push(item);
+    localStorage.setItem('oubao_corrections', JSON.stringify(stored));
+  } catch(e) {}
+  alert(`✅ 已记下你的纠正：\n\n「${text}」\n\n[Phase 1 模拟] 这条规则会自动 append 到：\n~/oubao-prototype/profile/owner_profile.yaml \n→ corrections 字段\n\n下次 Obao 跑系统 prompt 时会带上这条规则。`);
+  closeCorrect();
+}
+
+function recallFeishuComment(key) {
+  const fc = DRAWER_DATA[key].feishu_comment;
+  if (!confirm(`确定撤回这条评论吗？\n\n撤回 = 在飞书把这条评论标记为「已解决」(下属不会再看到)\n注：评论草稿 API 不支持真正删除，只支持 resolve。`)) return;
+  fc.status = 'resolved';
+  alert(`🗑 已撤回 · comment_id ${fc.comment_id} 标记为 resolved\n\n实际产品对接 lark-cli drive file.comments patch is_solved=true`);
+  openDrawer(key);
+}
+
+function scrollTo2(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+function scrollToAnchor(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.scrollIntoView({behavior: 'smooth', block: 'center'});
+    el.style.boxShadow = '0 0 0 3px rgba(192,125,46,0.4)';
+    setTimeout(() => el.style.boxShadow = '', 1500);
+  }
+}
+
+/* ===== Obao 评论草稿文字（IM 风重写版 · 已推飞书）===== */
+const FEISHU_COMMENTS = {
+  'review-rate-public': `@张三 活动转化率（季度）拉新渠道 24.4% / 存量渠道 0.7% 这条
+
+OKR 是「活动转化率目标 10%」呀，没分对公视频
+
+总体汇总多少？是不是目标 10%
+
+对公为啥比视频高那么多，是数量结构 / 策略 / 用户类型不同？
+
+对公 20%+ 是一直这样的常态吗，过去更低还是一直就这样`,
+
+  'recall-aig': `@张三 涉案召回这块 ——
+
+OKR 三个指标周报里只给了活动转化率（且超标）
+
+召回率 + AIG 触发占比 两个数补一下`,
+
+  'risk-skill': `@李四 @康君哲 你写的「15号调整完的的，调整前的数据误伤率42.20%，漏放率8.70%，召回率91.30%，准确率77.39%，调整后暂时没有发现漏放的情况」
+
+调整前 4 个数都给了，调整后只说「暂时没有发现漏放的情况」呀
+
+调整后 4 个数（误伤率/漏放率/召回率/准确率）补一下
+跑了多少样本也写下吧`,
+
+  'supervise-complaint': `@李四 上级投诉「累计7起（其中12345反馈4起，信通院反馈3起）」这条
+
+OKR 要求准入合规率 100% + 100% 提供完整证据链「执照+授权+实人」
+
+补给我：
+当前准入合规率多少
+7 起每起状态（已处置/进行中/未启动）
+每起「执照+授权+实人」证据链齐不齐`,
+
+  'content-ai-longtail': `@孙七 @祝自强 「**ai+审核场景已经43个**（目标53，已完成81.13%）」这条
+
+OKR 是「长尾场景用可控成本完成至少80%场景数量的自动化」
+
+53 是 KR 真实目标还是中间目标呀
+总场景数（分母）多少
+「至少80%场景数量」按什么口径算`,
+
+  'content-ai-qualified': `@孙七 @祝自强 「资质类场景ai审核测试可用、调试中，系统功能预计下周开始研发上线」这条
+
+测试覆盖了哪些资质类场景
+发现什么问题 / 卡点
+距离上线还几步
+上线后第一批指标（准确率 / 召回率 / 误伤率）什么时候能给`,
+
+  'qa-report': `@吴九 @孙七 「每月完成质检，并输出质检结果」+「4月质检进行中」这条
+
+OKR 要求「按月输出AI和人工的质检结果...有效评价审核业务健康度（时效和反馈、准确率、业务反馈率）」
+
+月底报告里给我：
+AI 准确率 / 业务反馈率
+人工 准确率 / 业务反馈率
+时效和反馈`,
+
+  'data-export': `（节奏正常 · 不挑用词 · 无评论 · 等天津办确认）`,
+
+  'qinglang': `@赵六 「AI Native 重构专项 ddl 6.1」「0520启动」这条
+
+你接 owner 吗
+推进 checklist是不是直接复用Q3 落地 checklist v1.1
+什么时候能出`,
+
+  'gr': `@赵六 「2. 0520上级数据调取」「待开始」这条
+
+上海对接方那条「预计周四5.21完成」节奏可以
+
+上级：内部数据准备截止时间？谁执行（是不是李四同人接，跟上海对接方一致）`,
+
+  'compliance-skill': `@赵六 合规评估这条 ——
+
+「checklist v1.1：打标签全量测试（要求标签准确--召回）」召回率实际多少呢
+6 个评估场景「要求评估结果准确--准确」的准确率多少
+「细节问题优化中」具体是哪些细节呀
+Skill 部署在哪
+现在谁能用`,
+};
+
+/* init 时给所有 row-clickable 加显眼的 💬 评论 icon · hover 显示评论 toast */
+function bindRowHoverComments() {
+  document.querySelectorAll('tr.row-clickable').forEach(tr => {
+    const onclickStr = tr.getAttribute('onclick') || '';
+    const m = onclickStr.match(/openDrawer\('([^']+)'\)/);
+    if (!m) return;
+    const key = m[1];
+    const comment = FEISHU_COMMENTS[key];
+    if (!comment || comment.startsWith('（')) return;  // 跳过"无评论"占位
+
+    // 在最后一个 cell 末尾插入 💬 icon
+    const cells = tr.cells;
+    const lastCell = cells[cells.length - 1];
+    if (!lastCell || lastCell.querySelector('.comment-icon')) return;
+
+    const oldHTML = lastCell.innerHTML;
+    const icon = document.createElement('span');
+    icon.className = 'comment-icon';
+    icon.setAttribute('data-comment', comment);
+    icon.innerHTML = '💬';
+    // 阻止 icon click 触发行 onclick · 避免 hover 时误开抽屉
+    icon.addEventListener('click', e => { e.stopPropagation(); });
+
+    // 包装最后一列为 flex 容器
+    lastCell.classList.add('row-action-cell');
+    lastCell.innerHTML = '';
+    if (oldHTML.trim() && oldHTML.trim() !== '—' && oldHTML.trim() !== '-') {
+      const oldSpan = document.createElement('span');
+      oldSpan.innerHTML = oldHTML;
+      lastCell.appendChild(oldSpan);
+    }
+    lastCell.appendChild(icon);
+  });
+}
+
+renderDocWithComments();
+bindRowHoverComments();
+</script>
 
 </body>
 </html>
