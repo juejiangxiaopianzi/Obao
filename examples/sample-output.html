@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Workpad · 周报审阅 Demo</title>
+<title>Obao · 周报审阅 Demo</title>
 <script src="https://cdn.jsdelivr.net/npm/markdown-it@13/dist/markdown-it.min.js"></script>
 <style>
   :root {
@@ -351,7 +351,7 @@
   .okr-table tbody tr:hover { background: #FCF7ED !important; }
   .okr-table tr.row-clickable { cursor: pointer; }
 
-  /* 「教 Workpad」纠错 Modal */
+  /* 「教 Obao」纠错 Modal */
   .correct-modal-overlay {
     position: fixed; inset: 0; background: rgba(20,16,10,0.55);
     display: none; align-items: center; justify-content: center;
@@ -410,7 +410,7 @@
     box-shadow: 0 2px 8px rgba(192,125,46,0.3);
   }
   .comment-icon::after {
-    content: "💬 Workpad 写给下属的评论草稿\A（已推 · 锚定到这条事项）\A\A" attr(data-comment);
+    content: "💬 Obao 写给下属的评论草稿\A（已推 · 锚定到这条事项）\A\A" attr(data-comment);
     position: absolute;
     bottom: 100%; right: 0;
     transform: translateY(-8px);
@@ -457,7 +457,7 @@
   .md-content li { margin-bottom: 4px; line-height: 1.8; color: var(--text); }
   .md-content em { color: var(--text-subtle); font-style: normal; font-size: 12px; }
 
-  /* Workpad inline 评论 (评论草稿形态) */
+  /* Obao inline 评论 (评论草稿形态) */
   .oubao-comment {
     margin: 10px 0 18px 24px;
     padding: 14px 18px;
@@ -605,10 +605,10 @@
 </head>
 <body>
 
-<!-- ============ 教 Workpad 纠错 Modal ============ -->
+<!-- ============ 教 Obao 纠错 Modal ============ -->
 <div class="correct-modal-overlay" id="correct-modal-overlay" onclick="if(event.target.id==='correct-modal-overlay')closeCorrect()">
   <div class="correct-modal">
-    <h3>✏️ 教 Workpad · 这条不对 / 评论不对 / 下一步不对</h3>
+    <h3>✏️ 教 Obao · 这条不对 / 评论不对 / 下一步不对</h3>
     <div class="ctx" id="correct-ctx"></div>
     <textarea id="correct-textarea" placeholder="为什么不对？怎么改才对？
 
@@ -619,11 +619,11 @@
 - 「可用」是你脑补的 · 周报原文没这个词"></textarea>
     <div class="modal-actions">
       <button class="btn" onclick="closeCorrect()">取消</button>
-      <button class="btn primary" onclick="submitCorrect()">沉淀进 Workpad 记忆</button>
+      <button class="btn primary" onclick="submitCorrect()">沉淀进 Obao 记忆</button>
     </div>
     <div class="hint">
       💾 你的纠正会立刻追加到 <b>~/oubao-prototype/profile/owner_profile.yaml</b> 的 <code>corrections</code> 列表 ·
-      下次跑系统 prompt 会带上这条规则 · Workpad 不再犯同样错。
+      下次跑系统 prompt 会带上这条规则 · Obao 不再犯同样错。
     </div>
   </div>
 </div>
@@ -656,11 +656,11 @@
           <div class="header-meta">
             <span>2026-W21 周会前（5/24 周一 17:00）</span>
             <span class="dot">·</span>
-            <span>Workpad · 关联 4 期周报 + 项目纪要 · 评论 7 条</span>
+            <span>Obao · 关联 4 期周报 + 项目纪要 · 评论 7 条</span>
           </div>
         </div>
         <div class="header-actions">
-          <button class="btn" onclick="alert('Phase 1：把 Workpad 评论批量同步到飞书原周报评论区，下级登录飞书就能看到')">💬 评论同步到飞书</button>
+          <button class="btn" onclick="alert('Phase 1：把 Obao 评论批量同步到飞书原周报评论区，下级登录飞书就能看到')">💬 评论同步到飞书</button>
           <button class="btn primary" onclick="alert('Phase 1：把会议备稿同步到日程或便签，开会时一键打开')">📌 备稿带进周会</button>
         </div>
       </div>
@@ -669,7 +669,7 @@
       <!-- 让用户看清「我填的档案 LLM 真的拿到了」+ 自动识别的人在哪里 -->
       <div class="onboarding-panel">
         <div class="op-head">
-          📇 Workpad 本次审阅用到的档案数据
+          📇 Obao 本次审阅用到的档案数据
           <span class="op-tag">已读 onboarding · 已拉 4 期历史</span>
         </div>
         <div class="op-grid">
@@ -701,7 +701,7 @@
           </div>
         </div>
         <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--divider);font-size:11px;color:var(--text-subtle);line-height:1.75">
-          💡 <b style="color:var(--text-muted)">人视角 ≠ 仅展示你录入的下属</b>。Workpad 从本期周报 + 历史 4 期 + 项目纪要里
+          💡 <b style="color:var(--text-muted)">人视角 ≠ 仅展示你录入的下属</b>。Obao 从本期周报 + 历史 4 期 + 项目纪要里
           <b style="color:var(--accent)">自动识别出现的所有人</b>（张三 / 李四 / 王五 / 孙七 / 周八 / 赵六 / 吴九 / 郑十），用花名字典做映射。
           直接下属只是用来打<b style="color:var(--text-muted)">「我直接下属」</b>标签 · 不做白名单过滤。
         </div>
@@ -715,7 +715,7 @@
         </div>
 
         <div style="font-size:12px;color:var(--text-subtle);margin-bottom:14px;padding:6px 0">
-          💡 数据格 <b style="color:var(--accent)">悬浮看摘要</b> · <b style="color:var(--accent)">点击</b>右侧抽屉看完整原文+评论草稿+动作 · <span style="color:var(--accent);font-weight:600">✍️ Workpad 替你写好 9 条评论草稿</span>
+          💡 数据格 <b style="color:var(--accent)">悬浮看摘要</b> · <b style="color:var(--accent)">点击</b>右侧抽屉看完整原文+评论草稿+动作 · <span style="color:var(--accent);font-weight:600">✍️ Obao 替你写好 9 条评论草稿</span>
         </div>
 
         <!-- ============ 3 视角 Tab ============ -->
@@ -1172,7 +1172,7 @@ AI+ 审核场景已经 43 个（目标 53，已完成 81.13%）
 
 
       <div style="text-align:center;color:var(--text-subtle);font-size:11px;padding:20px 0">
-        — Workpad demo · 本地预览 · onboarding 表单 + 3 视角 + 评论按 demo 标杆 + 自动识别周报里所有人 —
+        — Obao demo · 本地预览 · onboarding 表单 + 3 视角 + 评论按 demo 标杆 + 自动识别周报里所有人 —
       </div>
     </div>
   </main>
@@ -1483,7 +1483,7 @@ function renderCommentHtml(c) {
     <div class="oubao-comment-head">
       <div class="oubao-comment-author">
         <div class="oubao-comment-avatar">O</div>
-        <span class="oubao-comment-name">Workpad</span>
+        <span class="oubao-comment-name">Obao</span>
         <span class="oubao-comment-time">刚刚 · 给 ${mentionsHtml}</span>
       </div>
       <div>${tagsHtml}</div>
@@ -1629,7 +1629,7 @@ AI+ 审核场景已经 43 个（目标 53，已完成 81.13%）
     comment: { severity: 'm', html: `<p><b>⚠️ 数据歧义 · 不能直接判达标</b></p>
 <p>周报「81.13%」= 43÷53 · 是「中间目标完成度」</p>
 <p>但 KR 真实进度 = 43÷82（总场景数）= <b>52.4%</b> · 离 ≥80% 红线还差 28 个点（还要做 ~23 个场景）。</p>
-<p>Workpad不脑补 · 让作者澄清。</p>` },
+<p>Obao不脑补 · 让作者澄清。</p>` },
     actions: [
       { mention: '@孙七', what: '划词补充 3 个澄清', detail: '① 53 是 KR 真实目标还是中间目标？② 82 是总场景数吗？③ KR 进度应该按 ÷82 算还是 ÷53 算？', ddl: '本周内' }
     ]
@@ -1824,14 +1824,14 @@ function openDrawer(key) {
           <button class="dw-fc-btn" onclick="editFeishuComment('${key}')">✏️ 编辑</button>
           <button class="dw-fc-btn primary spacer" onclick="pushFeishuComment('${key}')" ${status==='pushed'?'disabled':''}>${status==='pushed'?'已推':'📤 推到飞书'}</button>
           <button class="dw-fc-btn danger" onclick="recallFeishuComment('${key}')" ${status!=='pushed'?'disabled':''}>🗑 撤回</button>
-          <button class="teach-btn" onclick="openCorrect('${key}')">🎯 教 Workpad</button>
+          <button class="teach-btn" onclick="openCorrect('${key}')">🎯 教 Obao</button>
         </div>
       </div>
     </div>`);
   } else {
     // 旧格式 fallback：comment + actions
     if (d.comment) {
-      body.push(`<div class="dw-section"><div class="dw-section-title">💬 Workpad 判断</div><div class="dw-comment ${d.comment.severity}">${d.comment.html}</div></div>`);
+      body.push(`<div class="dw-section"><div class="dw-section-title">💬 Obao 判断</div><div class="dw-comment ${d.comment.severity}">${d.comment.html}</div></div>`);
     }
     if (d.actions && d.actions.length) {
       body.push(`<div class="dw-section"><div class="dw-section-title">🎯 替你干活 · 下一动作</div>${
@@ -1887,7 +1887,7 @@ function pushFeishuComment(key) {
   openDrawer(key);
 }
 
-/* ===== 教 Workpad 纠错机制 ===== */
+/* ===== 教 Obao 纠错机制 ===== */
 let _currentCorrectKey = null;
 function openCorrect(key) {
   _currentCorrectKey = key;
@@ -1921,7 +1921,7 @@ function submitCorrect() {
     stored.push(item);
     localStorage.setItem('oubao_corrections', JSON.stringify(stored));
   } catch(e) {}
-  alert(`✅ 已记下你的纠正：\n\n「${text}」\n\n[Phase 1 模拟] 这条规则会自动 append 到：\n~/oubao-prototype/profile/owner_profile.yaml \n→ corrections 字段\n\n下次 Workpad 跑系统 prompt 时会带上这条规则。`);
+  alert(`✅ 已记下你的纠正：\n\n「${text}」\n\n[Phase 1 模拟] 这条规则会自动 append 到：\n~/oubao-prototype/profile/owner_profile.yaml \n→ corrections 字段\n\n下次 Obao 跑系统 prompt 时会带上这条规则。`);
   closeCorrect();
 }
 
@@ -1946,7 +1946,7 @@ function scrollToAnchor(id) {
   }
 }
 
-/* ===== Workpad 评论草稿文字（IM 风重写版 · 已推飞书）===== */
+/* ===== Obao 评论草稿文字（IM 风重写版 · 已推飞书）===== */
 const FEISHU_COMMENTS = {
   'review-rate-public': `@张三 活动转化率（季度）拉新渠道 24.4% / 存量渠道 0.7% 这条
 
