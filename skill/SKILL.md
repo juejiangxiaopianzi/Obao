@@ -1,6 +1,11 @@
 ---
 name: obao-review
-description: 把一份周报变成「深度审阅 share 页」。输入周报正文 + 一段自我介绍（部门/业务模块/下属/红线），产出一份本地浏览器能直接打开的 HTML 文件，含 3 视角表格（OKR / 专项 / 人）+ 双层悬浮卡 + 右侧抽屉（原文 / 分析 / 评论草稿）+ 卡片化呈现。让 LLM 帮你把一周的事追问到底，把可以丢给团队的飞书评论先草拟好。触发词：「审周报」「深度审阅」「workpad」「周报 share 页」「周报评论」「帮我看下这份周报」。
+description: |
+  Turn a weekly report into a deep-review share page. Input the report content + a one-paragraph self-intro (department / business modules / direct reports / red lines), output a single local HTML file with three pivot views (OKR / Topic / People), nested hover cards, and a side-drawer (original / AI analysis / Feishu comment draft). Lets an LLM follow up every loose end and pre-draft the comments you'd otherwise type by hand. Output is always in Chinese.
+
+  把一份周报变成「深度审阅 share 页」。输入周报正文 + 一段自我介绍（部门/业务模块/下属/红线），产出一份本地浏览器能直接打开的 HTML 文件，含 3 视角表格（OKR / 专项 / 人）+ 双层悬浮卡 + 右侧抽屉（原文 / 分析 / 评论草稿）+ 卡片化呈现。让 LLM 帮你把一周的事追问到底，把可以丢给团队的飞书评论先草拟好。
+
+  Triggers / 触发词: review my weekly report / 审周报 / 深度审阅 / workpad / obao / O包 / 周报 share 页 / 周报评论 / 帮我看下这份周报
 ---
 
 # Obao · 周报深度审阅 Skill
