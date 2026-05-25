@@ -75,28 +75,90 @@ cd obao
 **只装了其中一个？** 没装的会自动跳过，输出 `⊘` 标记。
 **已存在旧版本？** 自动备份成 `*.bak.<timestamp>` 不会覆盖丢。
 
-### 使用
+### 使用 · 按你用的 Agent 选
 
-打开你的 Agent（Claude Code / Cursor / Codex），输入：
+通用流程：打开你的 Agent，**输入「帮我审一下这份周报」**，Agent 会自动加载 obao-review skill 并向你要 2 件输入：
+- 周报正文（markdown / 纯文本）
+- 自我介绍（部门 / 业务模块 / 下属花名 / 红线 · 一段话）
+
+下面是各 Agent 的具体启动方式 ↓
+
+---
+
+#### 🔵 Claude Code 用户
+
+```bash
+# 启动（在任意终端）
+claude
+```
+
+直接对话框输入：
 
 ```
 帮我审一下这份周报
 ```
 
-> 💡 **Cursor 用户注意**：如果你以前在 `~/.cursor/skills/` 装过别的同名 obao skill，会与本 skill 触发词冲突。`install.sh` 装的本 skill 名是 `obao-review`（不是 `obao`），触发词主要靠「审周报 / 深度审阅 / workpad / 帮我看下这份周报」，跟「O宝/欧宝/诊断对齐」这类公司 obao 触发词错开。如果还是冲突，把旧的同名 skill 改名或删掉。
+如果 skill 没自动加载，重启 Claude Code 一次（关掉再开），让它重新扫 `~/.claude/skills/` 目录。
 
-Claude 会问你要：
-1. **周报正文**（粘贴 markdown 或纯文本）
-2. **自我介绍**（部门 / 业务模块 / 下属花名 / 红线）
+---
 
-第一次没头绪？用项目里的示例：
+#### 🟣 Cursor 用户
+
+1. 打开 Cursor，按 `⌘ + L` 打开 Chat 面板
+2. 在 Chat 输入：
+
+   ```
+   帮我审一下这份周报
+   ```
+
+3. Cursor 会从 `~/.cursor/skills/obao-review/` 加载 skill 并执行
+
+> ⚠️ **触发词冲突提醒**
+> 如果你以前在 `~/.cursor/skills/` 装过别的同名 obao skill（比如公司内部版的 `name: obao`），可能跟本 skill 触发词重叠。
+> 本 skill 的 frontmatter `name` 是 `obao-review`，**不**是 `obao`，触发词主要靠「**审周报 / 深度审阅 / workpad / 帮我看下这份周报**」。
+> 跟「O宝 / 欧宝 / 诊断对齐」这类公司 obao 触发词错开了。
+> 如果还是冲突，把那个老 skill 改名或删掉就行：`mv ~/.cursor/skills/obao{,.old}`
+
+---
+
+#### 🟢 Codex CLI / OpenCode 用户
+
+如果你还没装 Codex CLI：
 
 ```bash
-cat examples/sample-self-intro.md
-cat examples/sample-weekly-report.md
+# 用 npm 装（需要 Node ≥ 18）
+npm install -g @openai/codex
+# 或访问 https://github.com/openai/codex 看官方安装说明
 ```
 
-把这两份内容粘给 Claude，让它跑一次 `obao-review`。等 30 秒，你会拿到一份本地 HTML 文件，浏览器打开就能看。
+跑 Obao install.sh 后，skill 已落到 `~/.codex/skills/obao-review/`。启动：
+
+```bash
+codex
+```
+
+在 codex 交互界面输入：
+
+```
+帮我审一下这份周报
+```
+
+Codex 会按 `~/.codex/skills/obao-review/SKILL.md` 的流程引导你。
+
+> 💡 Codex CLI 没有 `lark-cli` 集成（Step 8 飞书一键评论需要本机装 lark-cli + 飞书 docx URL），但生成 HTML / 评论草稿这条主流程**完全可用**。
+
+---
+
+### 第一次没头绪？用项目里的示例
+
+```bash
+cat examples/sample-self-intro.md         # 一段虚构的产品经理自我介绍
+cat examples/sample-weekly-report.md      # 一份虚构的 5/20 周报
+```
+
+把这两份内容贴给 Agent，让它跑一次 `obao-review`。等 30 秒，你会拿到一份本地 HTML 文件，浏览器打开就能看。
+
+示例渲染效果：[`examples/sample-output.html`](./examples/sample-output.html)（仓库里直接预览）
 
 ---
 
