@@ -1,0 +1,10 @@
+# Tell GitHub linguist that the HTML files here are skill template assets,
+# not hand-written frontend code. This keeps the "Languages" panel honest.
+
+skill/assets/*.html   linguist-generated=true
+examples/*.html       linguist-generated=true
+
+# Let markdown count toward the language stats so the panel reflects what
+# Obao actually is (a markdown-prompt-driven Claude Skill).
+*.md                  linguist-detectable=true
+*.md                  linguist-documentation=false
