@@ -127,6 +127,64 @@ obao_review_{date}_{安全文件名}.html
 - [ ] doc_title / intro_text 不是范本，是用户真实给的内容
 - [ ] 抽屉里的「原文」字段确实是用户粘贴的原文（不能漏）
 
+### Step 8 · 可选 · 一键发飞书评论（需 lark-cli + 飞书 docx）
+
+跑完 HTML 后，**如果**满足下面 2 个条件，就主动问用户：
+
+1. `which lark-cli` 命令存在（用户本机装了飞书 CLI）
+2. 用户给了周报的飞书文档 URL / wiki URL / docx token
+
+满足条件时，问用户：
+
+> "你这份周报是飞书 docx 吗？要不要我帮你把评论草稿**逐条**发到原文档对应段落？"
+
+如果用户 yes：
+
+#### 8.1 · 让 LLM 为每条评论提取「定位片段」
+
+在 Step 4 加工时，已经为每条评论生成了 `feishu_comment_draft`，但还需要一个 `selection_for_comment` 字段：
+
+- 从原文截取 **20-60 字的连续片段**，最好包含一个**独特数字或专有名词**（避免文档里有重复段落）
+- 这个片段将作为 `--selection-with-ellipsis` 传给 lark-cli，飞书会自动定位到这个片段并加局部评论
+- 如果实在找不到独特片段（比如评论是针对整体的），就走全文档评论（`--full-comment`）
+
+#### 8.2 · 让用户逐条勾选
+
+用 `AskUserQuestion` 工具，**每次最多 4 条评论一起列**（小红书风格简短预览）：
+
+> "找到 N 条评论草稿。哪几条要发到飞书？"
+> - [选项 1] @张三 · 5 月增长 5.2% vs 目标 8% · 缺口在哪个渠道...
+> - [选项 2] @李四 · Q3 大盘对公口径不一致...
+> - ...
+
+**multiSelect=true**。用户勾选哪几条就发哪几条。
+
+#### 8.3 · 调 lark-cli 发评论
+
+对每条勾选的评论：
+
+```bash
+lark-cli drive +add-comment \
+  --doc "<doc_url_or_token>" \
+  --selection-with-ellipsis "<selection_for_comment>" \
+  --content '[{"type":"text","text":"<feishu_comment_draft>"}]' \
+  --dry-run
+```
+
+**强制先 dry-run** 一次给用户看请求长啥样，确认后再去掉 `--dry-run` 真发。
+
+#### 8.4 · 报告结果
+
+发完报告：
+
+> ✅ 已发 3 条评论到飞书 docx
+> ⚠️ 1 条 selection 没匹配上原文（已转为全文档评论）
+> ❌ 1 条 lark-cli 返回错误：[错误信息]
+
+#### 8.5 · 没装 lark-cli 时
+
+直接跳过 Step 8。HTML 文件里的评论草稿用户自己复制粘贴。**不要**提示"建议你装 lark-cli"——开源用户可能根本不用飞书。
+
 ---
 
 ## D1-D6 硬纪律（违反 = 重做）
