@@ -48,28 +48,42 @@ Obao 干的事：**Claude 替你完成 3 的工作量，10 分钟以内**。
 ## 快速开始
 
 ### 前置条件
-- macOS / Linux
-- [Claude Code](https://claude.com/claude-code) 已安装
 
-### 安装
+- macOS / Linux
+- 至少装好下面**任一**支持的 Agent：
+  - [Claude Code](https://claude.com/claude-code)
+  - [Cursor](https://cursor.com)
+  - [Codex CLI](https://github.com/openai/codex) / OpenCode
+
+### 安装（统一一条命令）
 
 ```bash
-git clone https://github.com/juejiangxiaopianzi/Obao.git
+git clone https://github.com/juejiangxiaopianzi/Obao.git obao
 cd obao
 ./install.sh
 ```
 
-`install.sh` 会做两件事：
-1. 复制 `skill/` 到 `~/.claude/skills/obao-review/`
-2. 验证 Claude Code 能识别这个 skill
+`install.sh` 会自动检测你本机用哪些 Agent，把 skill 装到对应目录：
+
+| Agent | 安装路径 | 检测条件 |
+|---|---|---|
+| Claude Code | `~/.claude/skills/obao-review/` | 存在 `~/.claude/` |
+| Cursor | `~/.cursor/skills/obao-review/` | 存在 `~/.cursor/` |
+| Codex CLI / OpenCode | `~/.codex/skills/obao-review/` | 存在 `~/.codex/` |
+
+**3 个 Agent 都装了？** `install.sh` 会同时装到 3 个目录，你用哪个 Agent 都能直接触发。
+**只装了其中一个？** 没装的会自动跳过，输出 `⊘` 标记。
+**已存在旧版本？** 自动备份成 `*.bak.<timestamp>` 不会覆盖丢。
 
 ### 使用
 
-打开 Claude Code，输入：
+打开你的 Agent（Claude Code / Cursor / Codex），输入：
 
 ```
 帮我审一下这份周报
 ```
+
+> 💡 **Cursor 用户注意**：如果你以前在 `~/.cursor/skills/` 装过别的同名 obao skill，会与本 skill 触发词冲突。`install.sh` 装的本 skill 名是 `obao-review`（不是 `obao`），触发词主要靠「审周报 / 深度审阅 / workpad / 帮我看下这份周报」，跟「O宝/欧宝/诊断对齐」这类公司 obao 触发词错开。如果还是冲突，把旧的同名 skill 改名或删掉。
 
 Claude 会问你要：
 1. **周报正文**（粘贴 markdown 或纯文本）
