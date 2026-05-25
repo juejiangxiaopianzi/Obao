@@ -131,17 +131,26 @@ obao_review_{date}_{安全文件名}.html
 - [ ] 各行 owner 是不同的人（不许「@ 全是同一个人」）
 - [ ] doc_title / intro_text 不是范本，是用户真实给的内容
 - [ ] 抽屉里的「原文」字段确实是用户粘贴的原文（不能漏）
+- [ ] **检查 Step 8 触发条件**：用户给过飞书 docx / wiki URL 吗？给过就必须执行 Step 8，不许跳过
 
-### Step 8 · 可选 · 一键发飞书评论（需 lark-cli + 飞书 docx）
+### Step 8 · 飞书评论同步（用户给了飞书 URL 时**必触发** · 不许跳）
 
-跑完 HTML 后，**如果**满足下面 2 个条件，就主动问用户：
+**触发判断（按顺序执行）**：
 
-1. `which lark-cli` 命令存在（用户本机装了飞书 CLI）
-2. 用户给了周报的飞书文档 URL / wiki URL / docx token
+1. 用户的输入里**是否**含飞书文档 URL 或 wiki URL？
+   - 飞书 URL 形如：`https://[公司域].feishu.cn/docx/...`、`https://[域].feishu.cn/wiki/...`、`https://[域].larksuite.com/docx/...`
+   - 如果**有 → 进入第 2 步**
+   - 如果**没有 → 跳过 Step 8**，HTML 完成即可结束
 
-满足条件时，问用户：
+2. 跑 `which lark-cli` 探测本机是否装了飞书 CLI：
+   - **有 lark-cli → 进入第 3 步**
+   - **没 lark-cli** → 友好告知用户：「检测到你给了飞书文档 URL，但本机没装 lark-cli。装上之后可以让我帮你一键发评论。装法：`npm install -g @larksuiteoapi/lark-cli`」然后结束
 
-> "你这份周报是飞书 docx 吗？要不要我帮你把评论草稿**逐条**发到原文档对应段落？"
+3. **强制询问用户**（不许默认跳过，必须用 AskUserQuestion 或直接发问）：
+
+   > "你给了飞书文档 URL + 本机有 lark-cli。要不要我把 N 条评论草稿**逐条**发到原文档对应段落？（你可以选哪几条要发）"
+
+   ⛔ **死规矩**：上面这句话是**必须问的**。即使你觉得用户可能不想发，也要让用户自己拒绝，不许 Agent 替用户决定跳过。
 
 如果用户 yes：
 
