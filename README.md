@@ -54,7 +54,7 @@ Obao 干的事：**Claude 替你完成 3 的工作量，10 分钟以内**。
 ### 安装
 
 ```bash
-git clone https://github.com/juejiangxiaopianzi/obao.git
+git clone https://github.com/juejiangxiaopianzi/Obao.git
 cd obao
 ./install.sh
 ```

@@ -61,7 +61,7 @@
 Obao 的核心是 6 条「死规矩」（D1-D6），是我自己 callout 8 个版本沉淀出来的纪律。
 
 【免费 + 开源】
-- GitHub：github.com/juejiangxiaopianzi/obao（仓库地址换成你的）
+- GitHub：github.com/juejiangxiaopianzi/Obao（仓库地址换成你的）
 - Claude Code 一键装：./install.sh
 - 数据全在本地，下属名 / OKR 不会离开你电脑
 
