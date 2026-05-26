@@ -34,9 +34,12 @@ for entry in "${TARGETS[@]}"; do
     mkdir -p "$parent"
 
     if [[ -d "$dst" ]]; then
-      backup="${dst}.bak.$(date +%s)"
-      mv "$dst" "$backup"
-      echo "  ↻  $label · existing skill backed up → $backup"
+      # Hard overwrite — keep no backup
+      # Reason: stale `obao-review.bak.<ts>` directories were polluting
+      # the agent's skill list and confusing the LLM about which version
+      # to load. If you really want a backup, `git clone` the source again.
+      rm -rf "$dst"
+      echo "  ↻  $label · replacing existing skill"
     fi
 
     cp -R "$SKILL_SRC" "$dst"
