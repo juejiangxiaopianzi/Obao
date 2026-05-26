@@ -17,7 +17,9 @@ fi
 TARGETS=(
   "Claude Code|$HOME/.claude|$HOME/.claude/skills/$SKILL_NAME"
   "Cursor|$HOME/.cursor|$HOME/.cursor/skills/$SKILL_NAME"
-  "Codex CLI / OpenCode|$HOME/.codex|$HOME/.codex/skills/$SKILL_NAME"
+  "Codex CLI|$HOME/.codex|$HOME/.codex/skills/$SKILL_NAME"
+  "OpenClaw|$HOME/.openclaw|$HOME/.openclaw/skills/$SKILL_NAME"
+  "Generic Agents (~/.agents)|$HOME/.agents|$HOME/.agents/skills/$SKILL_NAME"
 )
 
 installed_any=0

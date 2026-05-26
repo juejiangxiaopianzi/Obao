@@ -53,7 +53,8 @@ Obao 干的事：**Claude 替你完成 3 的工作量，10 分钟以内**。
 - 至少装好下面**任一**支持的 Agent：
   - [Claude Code](https://claude.com/claude-code)
   - [Cursor](https://cursor.com)
-  - [Codex CLI](https://github.com/openai/codex) / OpenCode
+  - [Codex CLI](https://github.com/openai/codex)
+  - [OpenClaw](https://openclaw.ai) — Peter Steinberger 的开源个人 AI 网关，覆盖飞书/微信/Slack/Telegram 等多通道
 
 ### 安装（统一一条命令）
 
@@ -69,11 +70,13 @@ cd obao
 |---|---|---|
 | Claude Code | `~/.claude/skills/obao-review/` | 存在 `~/.claude/` |
 | Cursor | `~/.cursor/skills/obao-review/` | 存在 `~/.cursor/` |
-| Codex CLI / OpenCode | `~/.codex/skills/obao-review/` | 存在 `~/.codex/` |
+| Codex CLI | `~/.codex/skills/obao-review/` | 存在 `~/.codex/` |
+| OpenClaw | `~/.openclaw/skills/obao-review/` | 存在 `~/.openclaw/` |
+| 通用 Agent 池 | `~/.agents/skills/obao-review/` | 存在 `~/.agents/` |
 
-**3 个 Agent 都装了？** `install.sh` 会同时装到 3 个目录，你用哪个 Agent 都能直接触发。
+**多个 Agent 都装了？** `install.sh` 会同时装到对应目录，你用哪个 Agent 都能直接触发。
 **只装了其中一个？** 没装的会自动跳过，输出 `⊘` 标记。
-**已存在旧版本？** 自动备份成 `*.bak.<timestamp>` 不会覆盖丢。
+**已存在同名 skill？** 直接覆盖（不再保留 backup —— 留 backup 会污染 Agent 的 skill 列表）。
 
 ### 使用 · 按你用的 Agent 选
 
@@ -121,7 +124,7 @@ claude
 
 ---
 
-#### 🟢 Codex CLI / OpenCode 用户
+#### 🟢 Codex CLI 用户
 
 如果你还没装 Codex CLI：
 
@@ -145,7 +148,41 @@ codex
 
 Codex 会按 `~/.codex/skills/obao-review/SKILL.md` 的流程引导你。
 
-> 💡 Codex CLI 没有 `lark-cli` 集成（Step 8 飞书一键评论需要本机装 lark-cli + 飞书 docx URL），但生成 HTML / 评论草稿这条主流程**完全可用**。
+> 💡 Codex CLI 跑 Step 8 飞书一键评论：和其他 Agent 一样，需要本机装 lark-cli。
+
+---
+
+#### 🦞 OpenClaw 用户
+
+[OpenClaw](https://openclaw.ai) 是 Peter Steinberger 的开源个人 AI 网关，把飞书 / 微信 / Slack / Telegram / Discord 等通道连接到底层 AI agent。
+
+如果你还没装 OpenClaw：
+
+```bash
+brew install openclaw/tap/openclaw
+# 或访问 https://openclaw.ai 看官方安装说明
+```
+
+跑 Obao install.sh 后，skill 已落到 `~/.openclaw/skills/obao-review/`（这是 OpenClaw 默认扫的 skill 路径之一）。
+
+**在 OpenClaw 里触发的方式**（任选一种）：
+
+1. **clawbot CLI**：直接命令行跑
+   ```bash
+   clawbot run --skill obao-review
+   ```
+
+2. **聊天通道**（绑定后）：在飞书 / Slack / Telegram 等里 @ 你的 OpenClaw bot：
+   ```
+   @bot 帮我审一下这份周报
+   ```
+
+3. **Workspace 级覆盖**：项目目录里建 `<workspace>/skills/obao-review/`，会优先于 `~/.openclaw/skills/` 加载
+
+> 💡 OpenClaw 的 skill 加载优先级（高 → 低）：
+> `<workspace>/skills` → `<workspace>/.agents/skills` → `~/.agents/skills` → `~/.openclaw/skills` → 内置
+>
+> `install.sh` 默认装到 `~/.openclaw/skills/` 和 `~/.agents/skills/` 两个位置，都是常驻可用。
 
 ---
 
