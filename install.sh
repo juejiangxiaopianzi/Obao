@@ -1,81 +1,76 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Obao install — copies the skill into every supported Agent's skill folder
-# Supports: Claude Code · Cursor · Codex CLI / OpenCode
+# Obao install — copies every skill in ./skills/ into each supported Agent's skill folder.
+# Supports: Claude Code · Cursor · Codex CLI / OpenCode · OpenClaw · Generic (~/.agents)
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-SKILL_SRC="$SCRIPT_DIR/skill"
-SKILL_NAME="obao-review"
+SKILLS_SRC="$SCRIPT_DIR/skills"
 
-if [[ ! -d "$SKILL_SRC" ]]; then
-  echo "ERROR: skill source not found at $SKILL_SRC"
+if [[ ! -d "$SKILLS_SRC" ]]; then
+  echo "ERROR: skills source not found at $SKILLS_SRC"
   exit 1
 fi
 
-# (label · agent_home · target_dir)
+# (label · agent_home · skills_dir)
 TARGETS=(
-  "Claude Code|$HOME/.claude|$HOME/.claude/skills/$SKILL_NAME"
-  "Cursor|$HOME/.cursor|$HOME/.cursor/skills/$SKILL_NAME"
-  "Codex CLI|$HOME/.codex|$HOME/.codex/skills/$SKILL_NAME"
-  "OpenClaw|$HOME/.openclaw|$HOME/.openclaw/skills/$SKILL_NAME"
-  "Generic Agents (~/.agents)|$HOME/.agents|$HOME/.agents/skills/$SKILL_NAME"
+  "Claude Code|$HOME/.claude|$HOME/.claude/skills"
+  "Cursor|$HOME/.cursor|$HOME/.cursor/skills"
+  "Codex CLI|$HOME/.codex|$HOME/.codex/skills"
+  "OpenClaw|$HOME/.openclaw|$HOME/.openclaw/skills"
+  "Generic Agents (~/.agents)|$HOME/.agents|$HOME/.agents/skills"
 )
 
-installed_any=0
-echo "Installing Obao skill ($SKILL_NAME):"
+# skills to install
+SKILLS=()
+for d in "$SKILLS_SRC"/*/; do
+  [[ -d "$d" ]] && SKILLS+=( "$(basename "$d")" )
+done
+
+echo "Installing Obao skills: ${SKILLS[*]}"
 echo ""
 
+installed_any=0
 for entry in "${TARGETS[@]}"; do
-  IFS='|' read -r label home dst <<< "$entry"
-  parent="$(dirname "$dst")"
-
-  # Only install if the agent's home dir already exists
-  # (i.e. user has actually used this agent before)
+  IFS='|' read -r label home skills_dir <<< "$entry"
+  # Only install if the agent's home dir already exists (i.e. you use this agent)
   if [[ -d "$home" ]]; then
-    mkdir -p "$parent"
-
-    if [[ -d "$dst" ]]; then
-      # Hard overwrite — keep no backup
-      # Reason: stale `obao-review.bak.<ts>` directories were polluting
-      # the agent's skill list and confusing the LLM about which version
-      # to load. If you really want a backup, `git clone` the source again.
-      rm -rf "$dst"
-      echo "  ↻  $label · replacing existing skill"
-    fi
-
-    cp -R "$SKILL_SRC" "$dst"
-    echo "  ✓  $label · installed to $dst"
+    mkdir -p "$skills_dir"
+    for s in "${SKILLS[@]}"; do
+      dst="$skills_dir/$s"
+      [[ -d "$dst" ]] && rm -rf "$dst"   # hard overwrite, no stale backups
+      cp -R "$SKILLS_SRC/$s" "$dst"
+    done
+    echo "  ✓  $label · installed ${#SKILLS[@]} skill(s) → $skills_dir/"
     installed_any=1
   else
-    echo "  ⊘  $label · skipped (no $home/ found — you don't seem to use this agent)"
+    echo "  ⊘  $label · skipped (no $home/ found)"
   fi
 done
 
 echo ""
 
 if [[ $installed_any -eq 0 ]]; then
-  echo "⚠️  No supported Agent home found on this machine."
-  echo ""
-  echo "Install at least one of:"
-  echo "    - Claude Code:  https://claude.com/claude-code"
-  echo "    - Cursor:       https://cursor.com"
-  echo "    - Codex CLI:    https://github.com/openai/codex"
-  echo ""
-  echo "Then re-run this script."
+  echo "⚠️  No supported Agent home found. Install one of:"
+  echo "    Claude Code https://claude.com/claude-code · Cursor https://cursor.com · Codex https://github.com/openai/codex"
   exit 1
 fi
 
 cat <<'NEXT'
 ✓ Done.
 
-Next steps:
-  1. Open your Agent (Claude Code / Cursor / Codex CLI)
-  2. Type: 帮我审一下这份周报
-  3. On first run, try the demo:
-     - examples/sample-self-intro.md
-     - examples/sample-weekly-report.md
-     Paste those into the agent and let it run obao-review.
+Two skills installed:
+  • obao-feishu-loop  ← 主推：完全基于飞书文档的周报审阅闭环（副本当承载页·可改可纠正·自学）
+                        需要 lark-cli + 飞书账号
+  • obao-review       ← 兜底：没有飞书时，生成一份本地 HTML 审阅页
 
-If your agent has cached its skill list, restart it once so the new skill is picked up.
+下一步（飞书闭环）：
+  1. 打开你的 Agent（Claude Code / OpenClaw / Cursor / Codex）
+  2. 说：帮我审这份飞书周报 <飞书文档链接>
+  3. Agent 会复制一份副本、把追问标成划词评论；你在副本上改/删/回复后说「可以推送了」，
+     它就把认可的评论发回原周报、按你的纠正自学、再删掉副本。
+
+没有飞书的话，直接说「帮我审这份周报」+ 贴周报正文，走 obao-review 出本地 HTML。
+
+如果 Agent 缓存了 skill 列表，重启一次让它生效。
 NEXT
