@@ -1,9 +1,9 @@
 ---
 name: obao-review
 description: |
-  Turn a weekly report into a deep-review share page. Input the report content + a one-paragraph self-intro (department / business modules / direct reports / red lines), output a single local HTML file with three pivot views (OKR / Topic / People), nested hover cards, and a side-drawer (original / AI analysis / Feishu comment draft). Lets an LLM follow up every loose end and pre-draft the comments you'd otherwise type by hand. Output is always in Chinese.
+  Turn ANY-format weekly report (tables / prose / messy) into a deep-review page with ONE FIXED visual style (do not invent your own): a top verdict card + the original report (select-to-comment) + a right-side comment stream + by-person / by-KR cards + ready-to-send draft comments. The HTML style is locked (template.html) — only the data changes. The real deliverable is posting the follow-up comments back to the Feishu report via lark-cli (Obao installs it and sends directly; the local HTML is a secondary artifact for you to read). Output is always in Chinese.
 
-  把一份周报变成「深度审阅 share 页」。输入周报正文 + 一段自我介绍（部门/业务模块/下属/红线），产出一份本地浏览器能直接打开的 HTML 文件，含 3 视角表格（OKR / 专项 / 人）+ 双层悬浮卡 + 右侧抽屉（原文 / 分析 / 评论草稿）+ 卡片化呈现。让 LLM 帮你把一周的事追问到底，把可以丢给团队的飞书评论先草拟好。
+  把**任意格式**的周报（表格 / 纯文字 / 再乱都行）变成一份**固定样式**的深度审阅页（⛔ 不许自己另发挥样式）：顶部总判断卡 + 周报原文（**选中即可划词评论**）+ 右侧批注流 + 按人 / 按 KR 卡片 + 写好的评论草稿。HTML 视觉锁死在 template.html，**只换数据不换样式**。真正的交付是用 lark-cli **把追问评论发回飞书原周报**（Obao 自己装 lark-cli 直接发；本地 HTML 是给你自己看的次要产物）。输出永远中文。
 
   Triggers / 触发词: review my weekly report / 审周报 / 深度审阅 / workpad / obao / O包 / 周报 share 页 / 周报评论 / 帮我看下这份周报
 ---
@@ -103,72 +103,52 @@ obao 用两档化解「丝滑 vs 准确」的张力。**冲突时丝滑优先拿
 
 ## 7 步加工流程
 
+> ## 核心原则：输入千变万化 · 输出永远是同一套固定视觉
+> 不同部门的周报**长得完全不一样**——销售一堆表格、HR 又一种格式、有的纯文字、有的层级混乱。**全接。**
+> 你的活 = 把**任意格式**的周报，归一成 `template.html` 那套**固定视觉**（顶部总判断卡 + 周报原文可划词评论 + 右侧批注流 + 按人/按 KR 卡片 + 评论草稿一键回推飞书）。
+> ⛔ **绝不许自己另发挥一套样式 / 配色 / 布局。** 样式是死的，只有数据是活的。
+
 ### Step 1 · 读资源
 
-读这 2 个文件理解上下文：
-- `assets/template.html` ← HTML/CSS 模板（紫色 + 6 列 + 抽屉 · 不要重新发明）
-- `assets/prompt.md` ← 完整 SYSTEM_PROMPT（9 步加工 + D1-D7 死规矩 + 3 视角 schema + A-J 红线）
+- `assets/template.html` ← **固定视觉骨架**（PIA 风 · system-blue · 已定稿）。⛔ **CSS / HTML 结构 / 所有 JS 函数一个字都不许动**，只换里面的数据（见 Step 5）。
+- `assets/prompt.md` ← 完整方法论（D1-D7 死规矩 + 化词评论 + 自动 @ 识别 + A-J 红线 + 球/红线 + 开局读 corrections.md）
 
-### Step 2 · 处理周报输入
+### Step 2 · 处理周报输入（任意格式都接）
 
-- 用户给 markdown / 文本 → 直接用
-- 用户什么都没给 → **问用户要** · 不许跑
+- markdown / 纯文本 / 表格 / 飞书文档链接 都行（飞书链接用 `lark-cli docs +fetch` 拉正文）。
+- 格式再乱也**读懂它**、归一成 Step 4 的数据结构。**不许嫌输入乱就跑偏样式。**
+- 什么都没给 → 问用户要，不许跑、不许编。
 
 ### Step 3 · 处理分身设定（自我介绍原文）
 
-- 用户给了 → 整段保留 · 当作 prompt 上下文
-- 用户**没给** → **必须问用户**：
-  > "我不知道你的工作背景 · 没法替你审周报。给我一段自我介绍：你是什么部门 / 岗位 / 业务模块（几条主线）/ 下属是谁（含花名）/ 红线（什么事必须你亲自审）· 一段话搞定。"
-- ⛔ **严禁默认填任何内容**
+- 用户给了 → 整段保留 · 当作 prompt 上下文 · 同时**开局读 `~/.obao-review/corrections.md`** 注入历史纠错。
+- 用户**没给** → **必须问**：「给我一段自我介绍：部门 / 岗位 / 业务主线 / 下属（含花名）/ 红线（什么事必须你亲自审）· 一段话。」
+- ⛔ 严禁默认填任何内容。
 
-### Step 4 · LLM 加工（用 prompt.md 完整方法论）
+### Step 4 · LLM 加工 → 产出固定数据结构
 
-按 prompt 9 步加工 · 产出符合 schema 的 JSON：
+按 prompt.md 方法论审完，把周报**归一**成 template.html 用的几个数据对象（不是旧的 okr_view JSON）：
 
-> ⚠️ schema 以 `assets/prompt.md` 为唯一权威。okr_view 是 `groups_by_business_module[].items[]` 两层结构，**没有 `krs` 中间层**（每个 item 自带 `kr_tag` / `kr_indicator`，不再嵌一层 KR）。
+| 数据对象 | 是什么 |
+|---|---|
+| 一句话判断 | 顶部 hero 的 `verdict-line`（≤40 字 · 风险指向明确） |
+| `HERO_STATS` | 4 个关键数字卡 `{v 值, l 标签, c 色 hi/mi/lo}` |
+| `REPORT` | 周报原文（markdown · **一字不差**，原文怎么写就怎么放，别重排） |
+| `FOCUSES` | 关注点数组，每条 = `{anchor 原文锚句, sev hi/mi/lo, biz 业务线, verdict 判断词, at @谁, kr KR原值, analysis 分析(可含<b>), draft 化词评论草稿}` |
+| `PEOPLE` | 人视角卡 `{nm 真名, al 花名, role, sev, st 状态(可含<b>), ball 球在你这}` |
+| `BALLS` / `REDLINES` | 球在你这 / 红线，各 1-3 条 |
 
-```json
-{
-  "review_id": "rv_xxx",
-  "doc_meta": {"doc_title": "周报 5/20 - 松果产品运营部", ...},
-  "okr_view": {
-    "groups_by_business_module": [
-      {
-        "business_module": "用户增长",
-        "icon": "📈",
-        "items": [
-          {
-            "kr_tag": "<KR id · 内部用 · 不展示>",
-            "item_title": "用户增长 · 加权拉新 CAC",
-            "item_subtitle": "林深 · 信息流 vs 自然量",
-            "kr_indicator": "加权 CAC ≤ 12 元",
-            "this_week_quote": "信息流渠道 28 元，自然量 3 元",
-            "ai_summary": "分端给了但缺加权汇总 · 无法判断是否 ≤12",
-            "verdict": "⚠️ 缺汇总",
-            "detailed_analysis": {
-              "next_action": "补加权 CAC 汇总数",
-              "feishu_comment_draft": "@林深 「信息流渠道 28 元，自然量 3 元」OKR 是「加权 CAC ≤ 12 元」呀\n①加权汇总下来多少？还在 12 以内不\n②信息流为啥比自然量贵那么多\n③是不是这周冲量买了一批",
-              "comment_id": "c_001"
-            },
-            "owner_name": "林深"
-          }
-        ]
-      }
-    ]
-  },
-  "special_view": null,
-  "person_view": { "groups_by_owner": [...] }
-}
-```
+每条 `FOCUSES[].draft` 守 D1-D7 + 化词评论（口语、从原文划词、@ 对的人、3-5 追问、不替下属拟方案、不借上级虎皮）。
 
-### Step 5 · 注入 template.html
+### Step 5 · 灌进 template.html（**只换数据 · 不动样式**）
 
-template.html 是纯静态 HTML，**直接用 Python / shell sed 批量替换**关键字段：
+template.html 里有一段注释 `/* ===== 单一数据源 ===== */`，下面就是 `HERO_STATS / REPORT / FOCUSES / PEOPLE / BALLS / REDLINES` 这几个 JS 常量 + hero 里的一句话判断。
 
-- `{{doc_title}}` → 周报标题
-- `{{intro_text}}` → 自我介绍原文
-- 表格内每行 cells → JSON 对应字段
-- 评论 icon 的 `data-comment` 属性 → feishu_comment_draft 转义后注入
+**做法**：把这几个常量的**值**，整体替换成本次真实周报的数据。其余**一律不动**。
+
+- ⛔ **只换上面那几个数据常量。** CSS、HTML 结构、render / 划词 / 评论 / 视图切换函数——**一个字符都不许改**。这样无论输入哪个部门、什么格式的周报，产出的永远是**同一套固定视觉**。
+- ⚠️ `FOCUSES[].anchor` 必须是 `REPORT` 原文里**真实存在的连续片段**（划词高亮 + 飞书定位都靠它精确匹配）；别选跨 `**加粗**` 的句子，否则高亮不上。
+- 改完自检：① 没动任何 CSS/函数 ② 每个 anchor 都能在 REPORT 里搜到 ③ 浏览器打开 3 个视图都正常。
 
 ### Step 6 · 输出落盘
 
@@ -181,13 +161,13 @@ obao_review_{date}_{安全文件名}.html
 ### Step 7 · self_check
 
 输出前自己确认：
-- [ ] 所有事项都有 ai_callout
-- [ ] feishu_comment_draft 长度 >= 80 字（不许敷衍）
-- [ ] 各行 owner 是不同的人（不许「@ 全是同一个人」）
-- [ ] doc_title / intro_text 不是范本，是用户真实给的内容
-- [ ] 抽屉里的「原文」字段确实是用户粘贴的原文（不能漏）
+- [ ] **没动任何样式**：CSS / HTML 结构 / render·划词·评论函数一个字没改，只换了数据常量
+- [ ] 每条 FOCUSES 都有 analysis + draft（化词评论草稿）
+- [ ] FOCUSES 的 @ 是不同的人（不许「@ 全是同一个人」），且都是从原文识别的
+- [ ] 每个 `anchor` 都能在 `REPORT` 原文里搜到（划词/飞书定位才不出错）
+- [ ] `REPORT` 是用户真实周报原文，不是范本
 - [ ] **D7 没破**：没给 OKR 的事项，评论里没有任何反推出来的假 KR 数字
-- [ ] **检查 Step 8 触发条件**：用户给过飞书 docx / wiki URL 吗？给过就必须执行 Step 8，不许跳过
+- [ ] **检查 Step 8**：用户给过飞书文档 URL 吗？给过就必须执行 Step 8（Obao 自己装 lark-cli + 直接发评论回飞书）
 
 ### Step 8 · Obao 直接发飞书（给了飞书 URL 时**必触发** · 用户不碰命令行）
 
@@ -269,8 +249,8 @@ dry-run 那步如果请求明显有问题（selection 为空、content 转义炸
 
 ## 输出形态硬规矩
 
-- **必须是单文件 HTML**（路人浏览器双击能开）
-- **CSS / JS 内联**（不要外部依赖）
-- **3 视角表格全要**：OKR / 专项 / 人，**不能省**
-- **每个事项**都要有：原文片段 + AI 分析 + 飞书评论草稿 + 下一步动作
-- **抽屉交互**：点击事项右侧「💬」icon 弹抽屉，展示完整评论上下文
+- **必须是单文件 HTML**（路人浏览器双击能开 · CSS/JS 全内联）
+- **视觉锁死在 template.html**：顶部总判断卡 + 周报原文（划词评论）+ 右侧批注流 + 按人/按 KR 卡片。⛔ 不许改样式、不许另发挥布局。
+- **三个视图都在**：周报审阅（主）/ 按人 / 按 KR（segmented 切换，不是三张表）
+- **每个关注点**都要有：原文锚句 + AI 分析 + 化词评论草稿（含 @）+ 球/红线归位
+- **划词评论**：原文里选中任意一句能就地加评论（template.html 已实现，别动）
