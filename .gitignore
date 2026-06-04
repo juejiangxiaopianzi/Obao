@@ -1,0 +1,14 @@
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+output/
+*.bak.*
+.claude/
+node_modules/
+
+# personal / running drafts (not for public)
+SOCIAL.md
+notes/
+drafts/

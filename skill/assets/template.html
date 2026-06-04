@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Obao · 周报审阅</title>
+<script src="https://cdn.jsdelivr.net/npm/markdown-it@13/dist/markdown-it.min.js"></script>
+<style>
+  :root{
+    --bg:#F6F7F9; --card:#FFFFFF; --ink:#0F172A; --muted:#64748B; --subtle:#94A3B8;
+    --line:#E2E8F0; --line-soft:#EEF1F5; --blue:#2563EB; --blue-d:#1D4ED8; --blue-50:#EFF6FF;
+    --hi:#DC2626; --hi-bg:#FEF2F2; --hi-tx:#B91C1C;
+    --mi:#D97706; --mi-bg:#FFFBEB; --mi-tx:#B45309;
+    --lo:#16A34A; --lo-bg:#ECFDF5; --lo-tx:#047857;
+    --sh-sm:0 1px 2px rgba(15,23,42,.04),0 2px 8px rgba(15,23,42,.04);
+    --sh-md:0 1px 2px rgba(15,23,42,.04),0 8px 24px rgba(15,23,42,.06);
+    --sh-lg:0 1px 3px rgba(15,23,42,.06),0 16px 40px rgba(15,23,42,.08);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+    background:var(--bg); color:var(--ink); font-size:14px; line-height:1.7;
+    letter-spacing:-.011em; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  }
+  h1,h2,h3,h4{letter-spacing:-.022em}
+  .wrap{max-width:1180px; margin:0 auto; padding:28px 28px 80px}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  /* hero */
+  .hero{background:var(--card); border:1px solid var(--line); border-radius:18px; padding:24px 28px; box-shadow:var(--sh-md); margin-bottom:18px}
+  .hero-top{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap}
+  .hero h1{font-size:21px; font-weight:650}
+  .hero-meta{color:var(--subtle); font-size:12.5px; margin-top:4px}
+  .hero-meta .dot{margin:0 6px; opacity:.5}
+  .hero-actions{display:flex; gap:8px}
+  .verdict-line{margin-top:14px; font-size:15px; color:var(--ink); line-height:1.6}
+  .verdict-line b{color:var(--blue-d)}
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:18px}
+  @media(max-width:720px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{border:1px solid var(--line); border-radius:14px; padding:13px 15px; background:#FCFDFE}
+  .stat .v{font-size:20px; font-weight:680; letter-spacing:-.02em}
+  .stat .l{font-size:11.5px; color:var(--muted); margin-top:3px}
+  .stat.hi .v{color:var(--hi)} .stat.mi .v{color:var(--mi)} .stat.lo .v{color:var(--lo)}
+
+  /* segmented */
+  .seg{display:inline-flex; background:var(--line-soft); border-radius:12px; padding:4px; gap:2px; margin-bottom:16px}
+  .seg button{border:none; background:transparent; font-family:inherit; font-size:13.5px; color:var(--muted); padding:7px 16px; border-radius:9px; cursor:pointer; transition:.15s; font-weight:500}
+  .seg button.on{background:var(--card); color:var(--ink); box-shadow:var(--sh-sm)}
+  .view{display:none} .view.on{display:block; animation:fade .25s}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  /* review 2-col */
+  .review{display:grid; grid-template-columns:1fr 388px; gap:18px; align-items:start}
+  @media(max-width:980px){.review{grid-template-columns:1fr}}
+  .panel{background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:var(--sh-sm)}
+  .panel-h{padding:14px 20px; border-bottom:1px solid var(--line-soft); font-size:12px; color:var(--subtle); font-weight:600; letter-spacing:.4px; display:flex; justify-content:space-between; align-items:center}
+  .doc{padding:8px 24px 26px; font-size:14.5px; line-height:1.95}
+  .doc h2{font-size:16px; margin:22px 0 8px; padding-top:14px; border-top:1px solid var(--line-soft)}
+  .doc h2:first-child{border-top:none; padding-top:6px}
+  .doc h3{font-size:14px; color:var(--muted); margin:14px 0 6px; font-weight:600}
+  .doc h4{font-size:13.5px; margin:10px 0 4px}
+  .doc ul,.doc ol{padding-left:20px; margin:4px 0}
+  .doc li{margin:3px 0}
+  .doc strong{font-weight:650}
+  .doc .mark{background:var(--blue-50); border-bottom:2px solid var(--blue); border-radius:3px 3px 0 0; padding:0 2px; cursor:pointer; transition:.15s}
+  .doc .mark:hover{background:#DCE9FF}
+  .doc .mark.hi{border-bottom-color:var(--hi); background:var(--hi-bg)}
+  .doc .mark.mi{border-bottom-color:var(--mi); background:var(--mi-bg)}
+  .doc ::selection{background:#BFDBFE}
+
+  /* 划词 floating btn */
+  .sel-btn{position:absolute; z-index:50; display:none; background:var(--ink); color:#fff; border:none; border-radius:9px; padding:7px 13px; font-size:12.5px; font-family:inherit; cursor:pointer; box-shadow:var(--sh-lg); white-space:nowrap}
+  .sel-btn::after{content:""; position:absolute; left:50%; bottom:-5px; transform:translateX(-50%); border:5px solid transparent; border-top-color:var(--ink); border-bottom:none}
+  .sel-btn:hover{background:#1E293B}
+
+  /* comment stream */
+  .stream{display:flex; flex-direction:column; gap:12px; padding:14px; max-height:calc(100vh - 60px); overflow:auto; position:sticky; top:14px}
+  .fcard{border:1px solid var(--line); border-radius:14px; padding:14px 15px; background:var(--card); transition:.15s; cursor:pointer}
+  .fcard:hover{box-shadow:var(--sh-md); border-color:#CBD5E1}
+  .fcard.active{border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-50)}
+  .fcard-h{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:7px}
+  .pill{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:500; padding:2px 9px; border-radius:999px}
+  .pill::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor}
+  .pill.hi{background:var(--hi-bg); color:var(--hi-tx)} .pill.mi{background:var(--mi-bg); color:var(--mi-tx)} .pill.lo{background:var(--lo-bg); color:var(--lo-tx)}
+  .biz-tag{font-size:11px; color:var(--muted); background:var(--line-soft); padding:2px 8px; border-radius:999px}
+  .at{font-size:12px; color:var(--blue-d); font-weight:600}
+  .fcard-body{font-size:13px; color:var(--muted); line-height:1.7}
+  .fcard-body b{color:var(--ink)}
+  .fcard-foot{margin-top:9px; font-size:12px; color:var(--blue); font-weight:500}
+
+  /* draft (inline expand) */
+  .draft{margin-top:11px; border-top:1px dashed var(--line); padding-top:11px; display:none}
+  .draft.open{display:block}
+  .draft-anchor{font-size:11px; color:var(--subtle); margin-bottom:7px}
+  .draft-text{font-size:13px; line-height:1.85; white-space:pre-wrap; background:var(--blue-50); border-left:3px solid var(--blue); border-radius:0 8px 8px 0; padding:11px 13px; color:var(--ink)}
+  .draft-text[contenteditable=true]{background:#fff; border:1px solid var(--blue); border-left-width:3px; outline:none}
+  .draft-hint{font-size:11px; color:var(--subtle); margin:7px 0}
+  .draft-btns{display:flex; gap:6px; flex-wrap:wrap}
+  .b{font-size:12px; font-family:inherit; padding:6px 12px; border-radius:9px; border:1px solid var(--line); background:#fff; color:var(--ink); cursor:pointer; transition:.15s}
+  .b:hover{border-color:var(--blue); color:var(--blue)}
+  .b.primary{background:var(--blue); color:#fff; border-color:var(--blue)} .b.primary:hover{background:var(--blue-d); color:#fff}
+  .b.ghost{border-style:dashed; color:var(--subtle)} .b.ghost:hover{color:var(--blue)}
+
+  /* ball / redline summary */
+  .summary{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:18px}
+  @media(max-width:720px){.summary{grid-template-columns:1fr}}
+  .sum-card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px 20px; box-shadow:var(--sh-sm)}
+  .sum-card h3{font-size:13px; margin-bottom:11px; display:flex; align-items:center; gap:7px}
+  .sum-card h3 .d{width:8px; height:8px; border-radius:50%}
+  .sum-item{font-size:13px; line-height:1.65; padding:9px 0; border-bottom:1px solid var(--line-soft)}
+  .sum-item:last-child{border-bottom:none}
+  .sum-item b{color:var(--ink)}
+
+  /* person / kr cards */
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:14px}
+  .pcard{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px 18px; box-shadow:var(--sh-sm)}
+  .pcard-h{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px}
+  .pcard-h .nm{font-size:15px; font-weight:650}
+  .pcard-h .al{font-size:11.5px; color:var(--subtle); margin-left:6px; font-weight:400}
+  .pcard .role{font-size:12px; color:var(--muted); margin-bottom:10px}
+  .pcard .st{font-size:12.5px; color:var(--muted); line-height:1.7; margin-bottom:10px}
+  .pcard .st b{color:var(--ink)}
+  .pcard .ball{font-size:12px; color:var(--ink); background:var(--blue-50); border-radius:9px; padding:8px 10px}
+  .pcard .ball span{color:var(--blue-d); font-weight:600}
+
+  /* onboarding strip */
+  .ob{display:flex; gap:8px; flex-wrap:wrap; align-items:center; font-size:12px; color:var(--muted); margin-bottom:16px}
+  .ob .k{color:var(--subtle)}
+  .chip{display:inline-block; padding:2px 9px; border-radius:999px; background:var(--blue-50); color:var(--blue-d); font-size:11.5px}
+  .chip.g{background:var(--line-soft); color:var(--muted)}
+
+  /* teach modal */
+  .ov{position:fixed; inset:0; background:rgba(15,23,42,.45); display:none; align-items:center; justify-content:center; z-index:300}
+  .ov.open{display:flex}
+  .modal{width:560px; max-width:92vw; background:var(--card); border-radius:18px; padding:24px 26px; box-shadow:var(--sh-lg)}
+  .modal h3{font-size:16px; margin-bottom:6px}
+  .modal .ctx{font-size:12px; color:var(--muted); background:var(--line-soft); border-radius:10px; padding:10px 13px; margin-bottom:13px; line-height:1.7}
+  .modal textarea{width:100%; min-height:110px; border:1px solid var(--line); border-radius:11px; padding:12px 13px; font-family:inherit; font-size:13px; line-height:1.8; resize:vertical; outline:none}
+  .modal textarea:focus{border-color:var(--blue)}
+  .modal-foot{display:flex; justify-content:flex-end; gap:8px; margin-top:13px}
+  .foot{text-align:center; color:var(--subtle); font-size:11px; margin-top:34px}
+</style>
+</head>
+<body>
+<button class="sel-btn" id="selBtn">划词评论</button>
+
+<div class="wrap">
+
+  <!-- 分身档案条 -->
+  <div class="ob">
+    <span class="k">Obao 本次用到的分身设定：</span>
+    <span class="chip">用户增长</span><span class="chip">内容社区</span><span class="chip">商业化</span>
+    <span class="k" style="margin-left:6px">花名：</span>
+    <span class="chip g">小林=林深</span><span class="chip g">苗苗=何苗</span><span class="chip g">小帆=吴帆</span><span class="chip g">萌萌=郑萌</span>
+  </div>
+
+  <!-- HERO 总判断卡 -->
+  <div class="hero">
+    <div class="hero-top">
+      <div>
+        <h1>松果 · 产品运营部 · 5/20 周报审阅</h1>
+        <div class="hero-meta"><span>2026-W21 周会前</span><span class="dot">·</span><span>关联 4 期周报 + 项目纪要</span><span class="dot">·</span><span>Obao 标了 8 处关注点</span></div>
+      </div>
+      <div class="hero-actions">
+        <button class="b" onclick="alert('把下面每条评论草稿用「复制 lark-cli 命令」逐条发到飞书原周报，下属登录就能看到')">怎么发飞书</button>
+        <button class="b primary" onclick="switchTab('review')">开始审</button>
+      </div>
+    </div>
+    <div class="verdict-line">一句话：<b>信息流 CAC 4 周走高、3 条 KR 的进展停在三周前，2 处只有你能拍板</b>。下属周报普遍「给了分项不给汇总、用『暂未发现异常』糊弄数据」，重点追这两类。</div>
+    <div class="stats" id="heroStats"></div>
+  </div>
+
+  <!-- 视图切换 -->
+  <div class="seg">
+    <button class="on" data-tab="review" onclick="switchTab('review')">周报审阅</button>
+    <button data-tab="person" onclick="switchTab('person')">按人</button>
+    <button data-tab="kr" onclick="switchTab('kr')">按 KR</button>
+  </div>
+
+  <!-- 视图 1：周报审阅（原文为主 + 划词 + 右侧批注） -->
+  <div class="view on" id="view-review">
+    <div class="review">
+      <div class="panel">
+        <div class="panel-h"><span>周报原文 · 选中任意一句即可划词评论</span><span style="color:var(--blue)">下属：月婷</span></div>
+        <div class="doc" id="doc"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><span>Obao 批注 · 点条目跳到原文</span><span id="fcount"></span></div>
+        <div class="stream" id="stream"></div>
+      </div>
+    </div>
+    <div class="summary">
+      <div class="sum-card">
+        <h3><span class="d" style="background:var(--blue)"></span>球在你这里（只有你能拍）</h3>
+        <div id="balls"></div>
+      </div>
+      <div class="sum-card">
+        <h3><span class="d" style="background:var(--hi)"></span>红线（不让步）</h3>
+        <div id="redlines"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 视图 2：按人 -->
+  <div class="view" id="view-person"><div class="grid" id="personGrid"></div></div>
+  <!-- 视图 3：按 KR -->
+  <div class="view" id="view-kr"><div class="grid" id="krGrid"></div></div>
+
+  <div class="foot">Obao demo · 本地预览 · 数据均为虚构「松果」App 示例</div>
+</div>
+
+<!-- 教 Obao -->
+<div class="ov" id="teachOv">
+  <div class="modal">
+    <h3>教 Obao · 这条不对</h3>
+    <div class="ctx" id="teachCtx"></div>
+    <textarea id="teachTa" placeholder="哪里不对？怎么改才对？
+例：
+- 这条不该判「偏离」，对公本来就高，应该问背景
+- 评论别写「下周一前补」，评论=立刻做，不加 ddl
+- @ 错人了，这条该 @ 苏野不是林深"></textarea>
+    <div class="modal-foot">
+      <button class="b" onclick="closeTeach()">取消</button>
+      <button class="b primary" onclick="submitTeach()">沉淀进 Obao 记忆</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const md = window.markdownit({html:true, linkify:true, breaks:false});
+
+/* ===== 单一数据源 ===== */
+const HERO_STATS = [
+  {v:'28 元', l:'信息流 CAC · 超 ≤12 上限', c:'hi'},
+  {v:'18 条', l:'用户差评工单 · 闭环不明', c:'mi'},
+  {v:'27/60', l:'内容标签自动化 ≈45% · 数据歧义', c:'mi'},
+  {v:'3 条', l:'KR 进展停在 3 周前', c:'hi'},
+];
+
+const REPORT = `## 一、用户增长
+
+### 1.1 拉新与留存
+- 拉新获客成本 CAC（本周）：信息流渠道 **28 元**，自然量 **3 元**
+- CAC 偏高的原因：① 本周加投了一批信息流买量 ② 自然量占比下降，把加权 CAC 拉上去了
+- 激活率、7 日留存：本周数据还在跑，下周补
+
+### 1.2 新手引导改版（owner：苏野 / 王越）
+- 新版引导覆盖前 3 步核心路径，5/15 灰度完
+  - 改版前：注册转化 62%，激活 48%，次留 38%，7 留 21%
+  - 改版后：暂未发现异常
+- 引导文案优化完成，用埋点做了全链路漏斗监控
+
+### 1.3 用户差评工单
+- **累计 18 条**（应用商店差评 12 条 · 客服反馈 6 条）
+
+## 二、内容社区
+
+### 2.1 内容标签自动化（owner：何苗 / 陈宇）
+- **已覆盖 27 个标签**（本季计划 35，已完成 77.1%）
+- 资质类图片识别测试可用、调试中，预计下周研发上线
+
+### 2.2 内容质检
+- 4 月内容质检进行中
+
+## 三、商业化与平台
+
+### 3.1 App 上架审核（owner：周航，ddl 5/27）
+- 0330 提交上架 → 0427 平台初审通过 → 0512 平台要求撤回重提（材料格式）→ 0521 迭代材料已重新提交，等终审
+
+### 3.2 v6.0 大版本重构专项（owner：周航，ddl 6/1）
+- 0520 启动
+
+### 3.3 渠道方 / 内部数据对账（owner：苏野）
+- 0512 渠道方数据对账，预计 5/21 完成
+- 0520 内部数据需求 · 待开始
+
+### 3.4 运营 SOP 自动化 skill（owner：周航）
+- Skill v1.0：识别 → 整理 → 输出 全链路已实现，细节优化中`;
+
+// 8 个关注点（doc 划词锚 + 右侧批注 + 评论草稿）· 单一来源
+const FOCUSES = [
+  { anchor:'信息流渠道', sev:'mi', biz:'用户增长', verdict:'缺加权汇总', at:'@林深', kr:'加权 CAC ≤ 12 元',
+    analysis:'只给了<b>分渠道</b>没给加权汇总；信息流 4 周走高 24→26→28；你写的两个原因都是<b>结构性</b>的，不像暂时现象。',
+    draft:`@林深 拉新 CAC 信息流 28 / 自然量 3 这条
+
+OKR 是「加权 CAC ≤ 12 元」呀，没分渠道
+加权汇总下来多少，还在 12 以内不
+信息流为啥比自然量贵这么多，是买量结构还是渠道质量
+这批量的次留怎么样，会不会为冲量买了一堆低质用户` },
+  { anchor:'改版后：暂未发现异常', sev:'mi', biz:'用户增长', verdict:'改版后 4 指标空', at:'@苏野 @王越', kr:'注册→激活→留存 漏斗↑',
+    analysis:'「暂未发现异常」是<b>观察不是数据</b>。改版前 4 个指标全给、改版后一个都没回填——月报讲「改版了」就是空话。',
+    draft:`@苏野 @王越 你写的「15 号灰度完，改版前注册转化62%、激活48%、次留38%、7留21%，改版后暂时没发现异常」
+
+改版前 4 个数都给了，改版后只说「暂时没发现异常」呀
+改版后 4 个数补一下
+灰度了多少量也写下吧` },
+  { anchor:'**累计 18 条**', sev:'mi', biz:'用户增长', verdict:'闭环率不明', at:'@苏野', kr:'工单闭环率 100%',
+    analysis:'18 条没拆<b>已处理/处理中/未启动</b>，闭环率没法判断，也看不出有没有滑掉的。',
+    draft:`@苏野 用户差评「累计18条（应用商店12条，客服6条）」这条
+
+当前闭环率多少
+18 条每条状态（已处理/处理中/未启动）
+有没有共性问题，是不是同一个功能引发的呀` },
+  { anchor:'**已覆盖 27 个标签**', sev:'mi', biz:'内容社区', verdict:'数据歧义', at:'@何苗 @陈宇', kr:'标签自动化 ≥ 80%',
+    analysis:'「77.1%」= 27÷35 是<b>中间目标</b>完成度；KR 真实进度 = 27÷60（全标签库）≈ <b>45%</b>，离 80% 还差 35 个点。',
+    draft:`@何苗 @陈宇 「已覆盖27个标签（计划35，完成77.1%）」这条
+
+OKR 是「内容标签自动化覆盖 ≥ 80%」呀
+35 是 KR 真实目标还是中间目标
+全标签库一共多少个（分母）
+按 ÷60 是不是才 45%` },
+  { anchor:'平台要求撤回重提', sev:'lo', biz:'商业化', verdict:'不偏离', at:'@周航', kr:'上架 100% 通过',
+    analysis:'<b>撤回重提 ≠ 被拒</b>，是平台审核流程一环，材料已重交、等终审，不偏离；但这句措辞容易让人误读成被拒。',
+    draft:`@周航 App 上架这条 ——
+
+「平台要求撤回重提」别人看了容易误读成被拒呀
+下次写清楚「按平台流程要求撤回补材料，已重新提交，等终审」
+终审大概啥时候出结果，有没有卡点` },
+  { anchor:'v6.0 大版本重构专项', sev:'mi', biz:'商业化', verdict:'倒计时 9 天', at:'@周航', kr:'按期上线',
+    analysis:'0520 启动、6/1 截止只剩 <b>9 天</b>，但没说 owner / 自查范围 / 节奏。',
+    draft:`@周航 「v6.0 大版本重构专项 ddl 6.1」「0520 启动」这条
+
+你接 owner 吗
+推进 checklist 是不是直接复用上次版本
+什么时候能出呀，只剩 9 天了哦` },
+  { anchor:'0520 内部数据需求 · 待开始', sev:'mi', biz:'商业化', verdict:'待指派·积 2 天', at:'@苏野', kr:'对账无重大遗留',
+    analysis:'渠道方那条准时（5/21）做得好；内部这条从 0520 接到现在 <b>2 天没动</b>，不指派就一直挂着。',
+    draft:`@苏野 「0520 内部数据需求」「待开始」这条
+
+渠道方那条「预计 5.21 完成」节奏挺好
+内部：数据准备截止时间定了没，谁执行呀
+别一直挂着没人推哦` },
+  { anchor:'Skill v1.0：识别 → 整理 → 输出 全链路已实现', sev:'lo', biz:'商业化', verdict:'节奏正常', at:'@周航', kr:'运营 SOP skill 可用',
+    analysis:'识别→整理→输出链路完整，KR 主体已交付，节奏正常。下周补一个准确率数 + 上线时间即可。',
+    draft:`@周航 运营 SOP skill 这条 ——
+
+「全量测试（要求动作识别准确）」准确率实际多少呀
+「细节优化中」具体是哪些细节
+现在团队谁能用上了` },
+];
+
+const PEOPLE = [
+  {nm:'林深', al:'小林', role:'用户增长 owner', sev:'hi', st:'信息流 CAC <b>28 元</b>（4 周走高，缺加权汇总）· 激活率/7 留周报未给', ball:'本周拍板买量策略 · 下周补激活/7 留'},
+  {nm:'苏野', al:'', role:'增长策略 / 数据对账 / 差评', sev:'mi', st:'引导改版后 <b>4 指标空</b> · 渠道方已完成、内部待 · 差评 18 条未拆', ball:'今天定内部对账 owner+ddl'},
+  {nm:'何苗', al:'苗苗', role:'内容社区 owner · 3 KR', sev:'mi', st:'标签 <b>27/60≈45%</b>（数据歧义）· 图片识别调试中 · 4 月质检中', ball:'确认 35 vs 60 口径'},
+  {nm:'陈宇', al:'', role:'新人 · 配合何苗', sev:'lo', st:'内容标签自动化（配合）· 根因定位完成、下周上线', ball:'上线时给图片识别基线数据'},
+  {nm:'周航', al:'老航', role:'商业化 / 平台多专项', sev:'mi', st:'上架材料已重交 · v6.0 重构 <b>9 天倒计时</b> · SOP skill 链路完整', ball:'5/24 出 v6.0 推进 checklist'},
+  {nm:'郑萌', al:'萌萌', role:'内部流程 / 供应商', sev:'mi', st:'本周周报里 <b>没有她</b> · 跟团队人员调整有关吗', ball:'问萌萌本周做了啥、周报为啥没写'},
+  {nm:'吴帆', al:'小帆', role:'内容质检', sev:'mi', st:'4 月质检中 · <b>4 个关键数全无</b>', ball:'月底报告补 4 个数'},
+  {nm:'王越', al:'', role:'配合苏野 · 新手引导', sev:'mi', st:'配合 5/15 引导改版（4 指标待补）', ball:'本周补改版后 4 指标'},
+];
+
+const BALLS = [
+  '<b>买量策略升级</b> —— 信息流 CAC 结构性走高，要不要砍信息流补自然量，是跨渠道权衡，只有你能定。',
+  '<b>v6.0 大版本上线节奏</b> —— 红线级，9 天倒计时，按不按期上、要不要砍范围，你拍。',
+];
+const REDLINES = [
+  '对外 / 平台审核口径不让步（上架措辞、合规表述你过）。',
+  '跟用户数据相关的事必须你亲自过，下属不代拍。',
+];
+
+/* ===== 渲染 ===== */
+const sevName = {hi:'高',mi:'中',lo:'低'};
+function esc(s){return s.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}
+
+function renderHero(){
+  document.getElementById('heroStats').innerHTML = HERO_STATS.map(s=>
+    `<div class="stat ${s.c}"><div class="v tnum">${s.v}</div><div class="l">${s.l}</div></div>`).join('');
+  document.getElementById('balls').innerHTML = BALLS.map(b=>`<div class="sum-item">${b}</div>`).join('');
+  document.getElementById('redlines').innerHTML = REDLINES.map(b=>`<div class="sum-item">${b}</div>`).join('');
+}
+
+let userFocuses = [];           // 划词新增的关注点
+function allFocuses(){return FOCUSES.concat(userFocuses)}
+
+function renderDoc(){
+  const html = md.render(REPORT);
+  const div = document.createElement('div'); div.innerHTML = html;
+  // 把每个 focus 的锚文字（去掉 markdown 星号后的纯文本）在原文里高亮成 .mark
+  allFocuses().forEach((f,i)=>{
+    const plain = f.anchor.replace(/\*\*/g,'');
+    walkMark(div, plain, i, f.sev);
+  });
+  document.getElementById('doc').innerHTML = div.innerHTML;
+}
+function walkMark(root, text, idx, sev){
+  const it = document.createNodeIterator(root, NodeFilter.SHOW_TEXT);
+  let n;
+  while((n=it.nextNode())){
+    const pos = n.nodeValue.indexOf(text);
+    if(pos>=0 && !n.parentNode.classList?.contains('mark')){
+      const after = n.splitText(pos);
+      after.splitText(text.length);
+      const mk = document.createElement('span');
+      mk.className = 'mark '+sev; mk.dataset.fi = idx; mk.textContent = after.nodeValue;
+      mk.onclick = ()=>focusCard(idx);
+      after.parentNode.replaceChild(mk, after);
+      return;
+    }
+  }
+}
+
+function renderStream(){
+  const fs = allFocuses();
+  document.getElementById('fcount').textContent = fs.length+' 处';
+  document.getElementById('stream').innerHTML = fs.map((f,i)=>`
+    <div class="fcard" id="fc-${i}" onclick="focusCard(${i})">
+      <div class="fcard-h">
+        <span class="pill ${f.sev}">${f.verdict}</span>
+        <span class="biz-tag">${f.biz}</span>
+        <span class="at">${f.at||''}</span>
+      </div>
+      <div class="fcard-body">${f.analysis}</div>
+      <div class="fcard-foot" onclick="event.stopPropagation();toggleDraft(${i})">写好的评论草稿 ▾</div>
+      <div class="draft" id="draft-${i}">
+        <div class="draft-anchor">锚定原文：「${esc(f.anchor.replace(/\*\*/g,''))}」</div>
+        <div class="draft-text" id="dt-${i}">${esc(f.draft).replace(/\n/g,'<br>')}</div>
+        <div class="draft-hint">@ 谁、措辞都能改 —— 点「编辑」直接在上面改</div>
+        <div class="draft-btns">
+          <button class="b" onclick="event.stopPropagation();editDraft(${i})">编辑</button>
+          <button class="b primary" onclick="event.stopPropagation();sendViaObao(${i})">让 Obao 发飞书</button>
+          <button class="b" onclick="event.stopPropagation();copyDraft(${i})">复制草稿</button>
+          <button class="b ghost" onclick="event.stopPropagation();openTeach(${i})">教 Obao</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function focusCard(i){
+  switchTab('review');
+  document.querySelectorAll('.fcard').forEach(c=>c.classList.remove('active'));
+  const c = document.getElementById('fc-'+i); if(c){c.classList.add('active'); c.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  const mk = document.querySelector(`.mark[data-fi="${i}"]`);
+  if(mk){mk.scrollIntoView({behavior:'smooth',block:'center'}); mk.style.outline='2px solid var(--blue)'; setTimeout(()=>mk.style.outline='',1200);}
+  if(c && !c.querySelector('.draft').classList.contains('open')) toggleDraft(i);
+}
+function toggleDraft(i){document.getElementById('draft-'+i).classList.toggle('open')}
+
+function editDraft(i){
+  const el = document.getElementById('dt-'+i);
+  if(el.getAttribute('contenteditable')==='true'){
+    allFocuses()[i].draft = el.innerText;
+    el.setAttribute('contenteditable','false'); el.innerHTML = esc(el.innerText).replace(/\n/g,'<br>');
+    alert('已保存。点「复制草稿」或「复制 lark-cli 命令」拿去发。');
+  }else{
+    el.setAttribute('contenteditable','true'); el.innerText = allFocuses()[i].draft; el.focus();
+  }
+}
+function copyDraft(i){
+  const el = document.getElementById('dt-'+i);
+  navigator.clipboard.writeText(el.innerText).then(()=>alert('已复制评论草稿（含 @）。\n\n粘到飞书周报评论区就行 —— 静态页能给你的最真实的「发送」，就是你来粘。'));
+}
+function sendViaObao(i){
+  const f = allFocuses()[i];
+  alert('发飞书是 Obao 的活，不用你碰命令行。\n\n在 Claude Code 里跟 Obao 说一句「把'+ (f.at||'这条') +'这条发到飞书」，它会：\n① 没装 lark-cli 就自己装（前置能力）\n② 直接调 lark-cli，把评论发到飞书原周报、@ 到人、锚定到「'+ f.anchor.replace(/\*\*/g,'') +'」那段\n\n（这个预览页没有后端、自己发不了 —— 真发生在你的 Claude Code 会话里，由 Obao 执行。）');
+}
+
+/* ===== 划词评论 ===== */
+const selBtn = document.getElementById('selBtn');
+let selText = '';
+document.getElementById('doc').addEventListener('mouseup', e=>{
+  setTimeout(()=>{
+    const sel = window.getSelection();
+    const t = sel.toString().trim();
+    if(t.length>=2 && document.getElementById('doc').contains(sel.anchorNode)){
+      selText = t;
+      const r = sel.getRangeAt(0).getBoundingClientRect();
+      selBtn.style.display='block';
+      selBtn.style.left = (window.scrollX + r.left + r.width/2 - selBtn.offsetWidth/2)+'px';
+      selBtn.style.top = (window.scrollY + r.top - selBtn.offsetHeight - 9)+'px';
+    }else{ selBtn.style.display='none'; }
+  },10);
+});
+document.addEventListener('mousedown', e=>{ if(e.target!==selBtn) selBtn.style.display='none'; });
+selBtn.onclick = ()=>{
+  selBtn.style.display='none';
+  const txt = prompt('对「'+ (selText.length>22?selText.slice(0,22)+'…':selText) +'」写一条评论草稿：');
+  if(!txt) return;
+  userFocuses.push({anchor:selText, sev:'mi', biz:'划词', verdict:'你加的', at:'', kr:'',
+    analysis:'你在原文里划词加的关注点。', draft:txt});
+  renderDoc(); renderStream();
+  focusCard(allFocuses().length-1);
+};
+
+/* ===== 人 / KR 卡片 ===== */
+function renderPerson(){
+  document.getElementById('personGrid').innerHTML = PEOPLE.map(p=>`
+    <div class="pcard">
+      <div class="pcard-h"><div><span class="nm">${p.nm}</span>${p.al?`<span class="al">${p.al}</span>`:''}</div><span class="pill ${p.sev}">${sevName[p.sev]}</span></div>
+      <div class="role">${p.role}</div>
+      <div class="st">${p.st}</div>
+      <div class="ball"><span>球在你这：</span>${p.ball}</div>
+    </div>`).join('');
+}
+function renderKR(){
+  // 按业务线把 focus 聚成 KR 卡
+  document.getElementById('krGrid').innerHTML = allFocuses().filter(f=>f.kr).map((f,i)=>{
+    const gi = allFocuses().indexOf(f);
+    return `<div class="pcard" style="cursor:pointer" onclick="focusCard(${gi})">
+      <div class="pcard-h"><div><span class="nm" style="font-size:13.5px">${f.kr}</span></div><span class="pill ${f.sev}">${f.verdict}</span></div>
+      <div class="role">${f.biz} · ${f.at||''}</div>
+      <div class="st">${f.analysis}</div>
+      <div class="ball" style="background:var(--line-soft);color:var(--muted)">点开看评论草稿 →</div>
+    </div>`;}).join('');
+}
+
+/* ===== 视图切换 ===== */
+function switchTab(t){
+  document.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on', b.dataset.tab===t));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on', v.id==='view-'+t));
+  if(t==='person') renderPerson();
+  if(t==='kr') renderKR();
+}
+
+/* ===== 教 Obao ===== */
+let _teachI=null;
+function openTeach(i){_teachI=i; const f=allFocuses()[i];
+  document.getElementById('teachCtx').innerHTML = `事项：<b>${f.kr||f.biz}</b><br>评论：${esc(f.draft.slice(0,60))}…<br>@：${f.at||'(无)'}`;
+  document.getElementById('teachTa').value=''; document.getElementById('teachOv').classList.add('open');
+  setTimeout(()=>document.getElementById('teachTa').focus(),80);}
+function closeTeach(){document.getElementById('teachOv').classList.remove('open'); _teachI=null;}
+function submitTeach(){const t=document.getElementById('teachTa').value.trim(); if(!t){alert('告诉我哪里不对呀～');return;}
+  alert('收到这条纠正：\n\n「'+t+'」\n\n这个预览页不写任何东西（没后端，不骗你）。真生效是这样：\n在 Claude Code 里跟 Obao 说这句，它会把这条 append 到本地文件\n~/.obao-review/corrections.md\n下次审阅开局必读 —— 这才是真的「教会它」，越用越像你。');
+  closeTeach();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeTeach();});
+
+/* init */
+renderHero(); renderDoc(); renderStream();
+</script>
+</body>
+</html>
