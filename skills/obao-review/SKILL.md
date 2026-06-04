@@ -1,6 +1,8 @@
 ---
 name: obao-review
 description: |
+  ⚠️ 路由：你若是**飞书里的智能体（aily / 艾丽）**、或用户给的是**飞书文档链接** → 用 `obao-aily-review`（飞书副本闭环），**不要用本 skill**。你若能跑 **lark-cli** 调飞书 → 用 `obao-feishu-loop`。本 skill 是**没有飞书时的兜底**，只产出本地 HTML。
+
   Turn ANY-format weekly report (tables / prose / messy) into a deep-review page with ONE FIXED visual style (do not invent your own): a top verdict card + the original report (select-to-comment) + a right-side comment stream + by-person / by-KR cards + ready-to-send draft comments. The HTML style is locked (template.html) — only the data changes. The real deliverable is posting the follow-up comments back to the Feishu report via lark-cli (Obao installs it and sends directly; the local HTML is a secondary artifact for you to read). Output is always in Chinese.
 
   把**任意格式**的周报（表格 / 纯文字 / 再乱都行）变成一份**固定样式**的深度审阅页（⛔ 不许自己另发挥样式）：顶部总判断卡 + 周报原文（**选中即可划词评论**）+ 右侧批注流 + 按人 / 按 KR 卡片 + 写好的评论草稿。HTML 视觉锁死在 template.html，**只换数据不换样式**。真正的交付是用 lark-cli **把追问评论发回飞书原周报**（Obao 自己装 lark-cli 直接发；本地 HTML 是给你自己看的次要产物）。输出永远中文。
