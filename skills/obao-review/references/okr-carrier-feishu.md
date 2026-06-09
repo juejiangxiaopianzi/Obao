@@ -71,6 +71,7 @@ lark-cli drive +add-comment --as user --doc $CARRIER --type docx \
 - 有进展的 KR → 评论锚到该进展槽 slot_id。
 - 周报没提的 KR → 评论锚到 `kr_block_id`，追问按三态（✅完成确认 / ⏸暂停问复工 / ⚠️真停滞问卡哪）。
 - 幂等：已评过的块跳过；逐条串行别并发。
+- ⛔ **降级阶梯**：`--block-id`（首选·挂到 KR/进展槽块）→ `--selection-with-ellipsis`（仍块级）→ `--full-comment` 全文评论（最糙·全局堆叠·**只在前两档都报错时**用，少量+带定位+告知用户"这是全局评论"）。⛔ 一遇定位接口报错（locate-doc EOF 等）就直接全文评论 = 踩坑。
 - ⛔ **拿到 comment_id ≠ 成功**：是否真落上、定位对不对，以用户前端为验收（见下方）。
 
 ### 5. 把球交给用户
